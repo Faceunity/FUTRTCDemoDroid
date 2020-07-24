@@ -1,0 +1,26 @@
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+    defaultConfig {
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 701
+        versionName "7.0.1"
+        // 7_0_1_phy_cc9e747_f92de5b
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar', '*.aar'])
+    implementation "com.android.support:appcompat-v7:$rootProject.ext.supportSdkVersion"
+    implementation "com.android.support:recyclerview-v7:$rootProject.ext.supportSdkVersion"
+    implementation 'com.android.support.constraint:constraint-layout:1.1.3'
+}
