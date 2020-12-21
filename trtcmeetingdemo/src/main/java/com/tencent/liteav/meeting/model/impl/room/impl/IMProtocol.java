@@ -2,10 +2,14 @@ package com.tencent.liteav.meeting.model.impl.room.impl;
 
 import android.util.Pair;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import static com.tencent.liteav.meeting.model.impl.room.impl.IMProtocol.Define.VALUE_PROTOCOL_VERSION;
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.tencent.liteav.meeting.model.impl.room.impl.IMProtocol.Define.*;
 
 public class IMProtocol {
 

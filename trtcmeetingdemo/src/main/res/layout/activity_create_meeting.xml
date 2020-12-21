@@ -58,6 +58,9 @@
             android:maxEms="10"
             android:hint="请输入会议号"
             android:inputType="number"
+            android:maxLines="1"
+            android:imeOptions="actionNext"
+            android:singleLine="true"
             android:textColorHint="@color/meetingTextColorHint"
             app:layout_constraintBottom_toBottomOf="@+id/room_id_tag"
             app:layout_constraintEnd_toEndOf="parent"
@@ -91,6 +94,9 @@
             android:layout_marginLeft="10dp"
             android:background="@null"
             android:hint="请输入用户名"
+            android:maxLines="1"
+            android:imeOptions="actionDone"
+            android:singleLine="true"
             android:textColorHint="@color/meetingTextColorHint"
             app:layout_constraintBottom_toBottomOf="@id/user_id_tag"
             app:layout_constraintEnd_toEndOf="parent"
@@ -141,6 +147,38 @@
             android:id="@+id/rb_music"
             style="@style/MeetingCreateRadioButtonStyle"
             android:text="@string/meeting_rb_music" />
+    </RadioGroup>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="30dp"
+        android:layout_marginTop="15dp"
+        android:layout_marginRight="30dp"
+        android:text="@string/meeting_tv_video_quality"
+        android:textColor="@color/meetingTextColorSecond"
+        android:textSize="@dimen/meetingItemTitleSize" />
+
+    <RadioGroup
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="30dp"
+        android:layout_marginTop="15dp"
+        android:layout_marginRight="20dp"
+        android:layout_marginBottom="5dp"
+        android:orientation="horizontal">
+
+        <RadioButton
+            android:id="@+id/rb_video_fast"
+            style="@style/MeetingCreateRadioButtonStyle"
+            android:checked="true"
+            android:text="@string/meeting_rb_video_fast" />
+
+        <RadioButton
+            android:id="@+id/rb_video_hd"
+            style="@style/MeetingCreateRadioButtonStyle"
+            android:text="@string/meeting_rb_video_hd" />
+
     </RadioGroup>
 
     <TextView

@@ -1,7 +1,7 @@
 package com.tencent.liteav.liveroom.model.impl.base;
 
-import com.tencent.liteav.basic.log.TXCLog;
 import com.tencent.liteav.liveroom.model.TRTCLiveRoomDelegate;
+import com.tencent.liteav.basic.log.TXCLog;
 
 import java.lang.ref.WeakReference;
 

@@ -32,7 +32,6 @@ import com.tencent.liteav.liveroom.model.TRTCLiveRoom;
 import com.tencent.liteav.liveroom.model.TRTCLiveRoomCallback;
 import com.tencent.liteav.liveroom.model.TRTCLiveRoomDef;
 import com.tencent.liteav.liveroom.model.TRTCLiveRoomDelegate;
-import com.tencent.liteav.liveroom.model.impl.av.trtc.TXTRTCLiveRoom;
 import com.tencent.liteav.liveroom.ui.common.msg.TCChatEntity;
 import com.tencent.liteav.liveroom.ui.common.msg.TCChatMsgListAdapter;
 import com.tencent.liteav.liveroom.ui.common.utils.TCConstants;
@@ -40,9 +39,9 @@ import com.tencent.liteav.liveroom.ui.common.utils.TCUtils;
 import com.tencent.liteav.liveroom.ui.widget.InputTextMsgDialog;
 import com.tencent.liteav.liveroom.ui.widget.danmaku.TCDanmuMgr;
 import com.tencent.liteav.liveroom.ui.widget.like.TCHeartLayout;
-import com.tencent.liteav.login.ProfileManager;
-import com.tencent.liteav.login.RoomManager;
-import com.tencent.liteav.login.UserModel;
+import com.tencent.liteav.login.model.ProfileManager;
+import com.tencent.liteav.login.model.RoomManager;
+import com.tencent.liteav.login.model.UserModel;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -60,49 +59,53 @@ import master.flame.danmaku.controller.IDanmakuView;
 public abstract class TCBaseAnchorActivity extends FragmentActivity implements TRTCLiveRoomDelegate, View.OnClickListener, InputTextMsgDialog.OnTextSendListener {
     private static final String TAG = TCBaseAnchorActivity.class.getSimpleName();
 
+    protected static final String LIVE_TOTAL_TIME = "live_total_time";       // KEY，表示本场直播的时长
+    protected static final String ANCHOR_HEART_COUNT = "anchor_heart_count";    // KEY，表示本场主播收到赞的数量
+    protected static final String TOTAL_AUDIENCE_COUNT = "total_audience_count";  // KEY，表示本场观众的总人数
     public static final int ERROR_ROOM_ID_EXIT = -1301;
 
-    // 消息列表相关
-    private ListView                mLvMessage;             // 消息控件
-    private InputTextMsgDialog      mInputTextMsgDialog;    // 消息输入框
-    private TCChatMsgListAdapter    mChatMsgListAdapter;    // 消息列表的Adapter
-    private ArrayList<TCChatEntity> mArrayListChatEntity;   // 消息内容
+    protected String mCoverPicUrl;              // 直播封面图
+    protected String mSelfAvatar;               // 个人头像地址
+    protected String mSelfName;                 // 个人昵称
+    protected String mSelfUserId;               // 个人用户id
+    protected String mRoomName;                 // 直播标题
+    protected int mRoomId;                   // 房间号
+    protected long mTotalMemberCount = 0;   // 总进房观众数量
+    protected long mCurrentMemberCount = 0;   // 当前观众数量
+    protected long mHeartCount = 0;   // 点赞数量
+    protected boolean mIsEnterRoom = false;
+    protected boolean mIsCreatingRoom = false;
 
-    private TCHeartLayout mHeartLayout;           // 点赞动画的布局
-
-    protected String  mCoverPicUrl;           // 直播封面图
-    protected String  mSelfAvatar;          // 个人头像地址
-    protected String  mSelfName;              // 个人昵称
-    protected String  mSelfUserId;                // 个人用户id
-    protected String  mRoomName;// 直播标题
-    protected int     mRoomId;   //房间号
-    protected long    mTotalMemberCount   = 0;  // 总进房观众数量
-    protected long    mCurrentMemberCount = 0;// 当前观众数量
-    protected long    mHeartCount         = 0;        // 点赞数量
-    protected boolean mIsEnterRoom        = false;
-    protected boolean mIsCreatingRoom     = false;
-
-    protected TCDanmuMgr       mDanmuMgr;              // 弹幕管理类
-    protected TRTCLiveRoom     mLiveRoom;              // 组件类
-    protected Group            mLiveBefore; //开播前的所有控件
-    protected Group            mLiveAfter;  //开播后需要显示的控件
-    private   ImageView        mLiveRoomCoverImg;
-    private   EditText         mLiveRoomNameEt;
-    private   Button           mStartRoomBtn;
-    private   Button           mSwitchCamBeforeLiveBtn;
-    private   Button           mBeautyBeforeLiveBtn;
-    private   TextView         mLiveRoomNameTv;
-    private   View             mToolbarView;
-    protected ConstraintLayout mConstraintLayout;
-
-
+    private TCDanmuMgr mDanmuMgr;                 // 弹幕管理类
+    private TCHeartLayout mLayoutHeart;              // 点赞动画的布局
+    protected TRTCLiveRoom mLiveRoom;                 // 组件类
+    protected Group mGroupLiveBefore;               //开播前的所有控件
+    protected Group mGroupLiveAfter;                //开播后需要显示的控件
+    private ImageView mImageLiveRoomCover;
+    private EditText mEditLiveRoomName;
+    private Button mButtonStartRoom;
+    private Button mButtonSwitchCamBeforeLive;
+    private Button mButtonBeautyBeforeLive;
+    private TextView mTextLiveRoomName;
+    private View mToolbar;
+    protected ConstraintLayout mRootView;
     protected Handler mMainHandler = new Handler(Looper.getMainLooper());
 
-    // 定时的 Timer 去更新开播时间
-    private   Timer              mBroadcastTimer;        // 定时的 Timer
-    private   BroadcastTimerTask mBroadcastTimerTask;    // 定时任务
-    protected long               mSecond = 0;            // 开播的时间，单位为秒
-    private   AlertDialog        mErrorDialog;
+    /**
+     * 消息列表相关
+     */
+    private ListView mLvMessage;             // 消息控件
+    private InputTextMsgDialog mInputTextMsgDialog;    // 消息输入框
+    private TCChatMsgListAdapter mChatMsgListAdapter;    // 消息列表的Adapter
+    private ArrayList<TCChatEntity> mArrayListChatEntity;   // 消息内容
+
+    /**
+     * 定时的 Timer 去更新开播时间
+     */
+    private Timer mBroadcastTimer;        // 定时的 Timer
+    private BroadcastTimerTask mBroadcastTimerTask;    // 定时任务
+    protected long mSecond = 0;            // 开播的时间，单位为秒
+    private AlertDialog mErrorDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -127,7 +130,6 @@ public abstract class TCBaseAnchorActivity extends FragmentActivity implements T
         if (TextUtils.isEmpty(mSelfName)) {
             mSelfName = mSelfUserId;
         }
-        TXTRTCLiveRoom.getInstance().onActivityCreate(this);
 
         initView();
     }
@@ -140,11 +142,11 @@ public abstract class TCBaseAnchorActivity extends FragmentActivity implements T
      * 的布局，所以id要保持一致。 若id发生改变，此处id也要同时修改
      */
     protected void initView() {
-        mConstraintLayout = (ConstraintLayout) findViewById(R.id.cl_anchor);
-        mLvMessage = (ListView) findViewById(R.id.im_msg_listview);
-        mHeartLayout = (TCHeartLayout) findViewById(R.id.heart_layout);
+        mRootView = (ConstraintLayout) findViewById(R.id.root);
+        mLvMessage = (ListView) findViewById(R.id.lv_im_msg);
+        mLayoutHeart = (TCHeartLayout) findViewById(R.id.heart_layout);
 
-        mInputTextMsgDialog = new InputTextMsgDialog(this, R.style.InputDialog);
+        mInputTextMsgDialog = new InputTextMsgDialog(this, R.style.TRTCLiveRoomInputDialog);
         mInputTextMsgDialog.setmOnTextSendListener(this);
 
         mChatMsgListAdapter = new TCChatMsgListAdapter(this, mLvMessage, mArrayListChatEntity);
@@ -154,64 +156,57 @@ public abstract class TCBaseAnchorActivity extends FragmentActivity implements T
         mDanmuMgr = new TCDanmuMgr(this);
         mDanmuMgr.setDanmakuView(danmakuView);
 
-        mLiveBefore = (Group) findViewById(R.id.before_live);
-        mLiveAfter = (Group) findViewById(R.id.after_live);
-        mLiveRoomCoverImg = (ImageView) findViewById(R.id.img_live_room_cover);
-        mLiveRoomNameEt = (EditText) findViewById(R.id.et_live_room_name);
-        mSwitchCamBeforeLiveBtn = (Button) findViewById(R.id.btn_switch_cam_before_live);
-        mStartRoomBtn = (Button) findViewById(R.id.btn_start_room);
-        mBeautyBeforeLiveBtn = (Button) findViewById(R.id.btn_beauty_before_live);
-        mLiveRoomNameTv = (TextView) findViewById(R.id.tv_live_room_name);
-        mToolbarView = findViewById(R.id.tool_bar_view);
-        mLiveBefore.setVisibility(View.VISIBLE);
-        mLiveAfter.setVisibility(View.GONE);
+        mGroupLiveBefore = (Group) findViewById(R.id.before_live);
+        mGroupLiveAfter = (Group) findViewById(R.id.after_live);
+        mImageLiveRoomCover = (ImageView) findViewById(R.id.img_live_room_cover);
+        mEditLiveRoomName = (EditText) findViewById(R.id.et_live_room_name);
+        mButtonSwitchCamBeforeLive = (Button) findViewById(R.id.btn_switch_cam_before_live);
+        mButtonStartRoom = (Button) findViewById(R.id.btn_start_room);
+        mButtonBeautyBeforeLive = (Button) findViewById(R.id.btn_beauty_before_live);
+        mTextLiveRoomName = (TextView) findViewById(R.id.tv_live_room_name);
+        mToolbar = findViewById(R.id.tool_bar_view);
+        mGroupLiveBefore.setVisibility(View.VISIBLE);
+        mGroupLiveAfter.setVisibility(View.GONE);
 
-        mStartRoomBtn.setOnClickListener(new View.OnClickListener() {
+        mButtonStartRoom.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (mIsCreatingRoom) {
                     return;
                 }
-                String roomName = mLiveRoomNameEt.getText().toString().trim();
+                String roomName = mEditLiveRoomName.getText().toString().trim();
                 if (TextUtils.isEmpty(roomName)) {
                     ToastUtils.showLong("房间名不能为空");
                     return;
                 }
                 InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
-                imm.hideSoftInputFromWindow(mLiveRoomNameEt.getWindowToken(), 0);
+                imm.hideSoftInputFromWindow(mEditLiveRoomName.getWindowToken(), 0);
                 mRoomName = roomName;
                 createRoom();
             }
         });
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            mLiveRoomCoverImg.setOutlineProvider(new ViewOutlineProvider() {
+            mImageLiveRoomCover.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
                 public void getOutline(View view, Outline outline) {
                     outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), 30);
                 }
             });
-            mLiveRoomCoverImg.setClipToOutline(true);
+            mImageLiveRoomCover.setClipToOutline(true);
         }
-        TCUtils.showPicWithUrl(this, mLiveRoomCoverImg, mSelfAvatar, R.drawable.bg_cover);
-        mLiveRoomNameTv.setText(mSelfName);
+        TCUtils.showPicWithUrl(this, mImageLiveRoomCover, mSelfAvatar, R.drawable.trtcliveroom_bg_cover);
+        mTextLiveRoomName.setText(mSelfName);
     }
 
     @Override
     public void onClick(View v) {
         int id = v.getId();
-        if (id == R.id.btn_close) {
+        if (id == R.id.btn_close_before_live) {
             if (!mIsEnterRoom) {
                 //如果没有进房，直接退出就好了
                 finishRoom();
             } else {
-                showExitInfoDialog("当前正在直播，是否退出直播？", false);
-            }
-        } else if (id == R.id.btn_close_before_live) {
-            if (!mIsEnterRoom) {
-                //如果没有进房，直接退出就好了
-                finishRoom();
-            } else {
-                showExitInfoDialog("当前正在直播，是否退出直播？", false);
+                showExitInfoDialog(getString(R.string.trtcliveroom_warning_anchor_exit_room), false);
             }
         } else if (id == R.id.btn_message_input) {
             showInputMsgDialog();
@@ -281,7 +276,6 @@ public abstract class TCBaseAnchorActivity extends FragmentActivity implements T
     protected void onDestroy() {
         super.onDestroy();
         stopTimer();
-        TXTRTCLiveRoom.getInstance().onActivityDestroy();
         if (mDanmuMgr != null) {
             mDanmuMgr.destroy();
             mDanmuMgr = null;
@@ -311,14 +305,14 @@ public abstract class TCBaseAnchorActivity extends FragmentActivity implements T
                 if (code == 0) {
                     mIsEnterRoom = true;
                     //创建成功, 更新UI界面
-                    mLiveBefore.setVisibility(View.GONE);
-                    mLiveAfter.setVisibility(View.VISIBLE);
+                    mGroupLiveBefore.setVisibility(View.GONE);
+                    mGroupLiveAfter.setVisibility(View.VISIBLE);
                     freshToolView();
                     startTimer();
                     onCreateRoomSuccess();
                 } else {
                     Log.w(TAG, String.format("创建直播间错误, code=%s,error=%s", code, msg));
-                    showErrorAndQuit(code, "创建直播房间失败,Error:" + msg);
+                    showErrorAndQuit(code, getString(R.string.trtcliveroom_error_create_live_room, msg));
                 }
                 mIsCreatingRoom = false;
             }
@@ -330,9 +324,9 @@ public abstract class TCBaseAnchorActivity extends FragmentActivity implements T
      */
     private void freshToolView() {
         ConstraintSet set = new ConstraintSet();
-        set.clone(mConstraintLayout);
-        set.connect(mToolbarView.getId(), ConstraintSet.BOTTOM, R.id.btn_close, ConstraintSet.TOP);;
-        set.applyTo(mConstraintLayout);
+        set.clone(mRootView);
+        set.connect(mToolbar.getId(), ConstraintSet.BOTTOM, R.id.btn_audio_ctrl, ConstraintSet.TOP);
+        set.applyTo(mRootView);
     }
 
     /**
@@ -356,12 +350,14 @@ public abstract class TCBaseAnchorActivity extends FragmentActivity implements T
             @Override
             public void onCallback(int code, String msg) {
                 if (code == 0) {
+
                     Log.d(TAG, "IM销毁房间成功");
                 } else {
                     Log.d(TAG, "IM销毁房间失败:" + msg);
                 }
             }
         });
+        mIsEnterRoom = false;
         mLiveRoom.setDelegate(null);
     }
 
@@ -396,12 +392,11 @@ public abstract class TCBaseAnchorActivity extends FragmentActivity implements T
         mTotalMemberCount++;
         mCurrentMemberCount++;
         TCChatEntity entity = new TCChatEntity();
-        entity.setSenderName("通知");
-        if (TextUtils.isEmpty(userInfo.userName)) {
-            entity.setContent(userInfo.userId + "加入直播");
-        } else {
-            entity.setContent(userInfo.userName + "加入直播");
-        }
+        entity.setSenderName(getString(R.string.trtcliveroom_notification));
+        if (TextUtils.isEmpty(userInfo.userName))
+            entity.setContent(getString(R.string.trtcliveroom_user_join_live, userInfo.userId));
+        else
+            entity.setContent(getString(R.string.trtcliveroom_user_join_live, userInfo.userName));
         entity.setType(TCConstants.MEMBER_ENTER);
         notifyMsg(entity);
     }
@@ -419,11 +414,11 @@ public abstract class TCBaseAnchorActivity extends FragmentActivity implements T
         }
 
         TCChatEntity entity = new TCChatEntity();
-        entity.setSenderName("通知");
+        entity.setSenderName(getString(R.string.trtcliveroom_notification));
         if (TextUtils.isEmpty(userInfo.userName)) {
-            entity.setContent(userInfo.userId + "退出直播");
+            entity.setContent(getString(R.string.trtcliveroom_user_quit_live, userInfo.userId));
         } else {
-            entity.setContent(userInfo.userName + "退出直播");
+            entity.setContent(getString(R.string.trtcliveroom_user_quit_live, userInfo.userName));
         }
         entity.setType(TCConstants.MEMBER_EXIT);
         notifyMsg(entity);
@@ -436,14 +431,13 @@ public abstract class TCBaseAnchorActivity extends FragmentActivity implements T
      */
     protected void handlePraiseMsg(TRTCLiveRoomDef.TRTCLiveUserInfo userInfo) {
         TCChatEntity entity = new TCChatEntity();
-        entity.setSenderName("通知");
+        entity.setSenderName(getString(R.string.trtcliveroom_notification));
         if (TextUtils.isEmpty(userInfo.userName)) {
-            entity.setContent(userInfo.userId + "点了个赞");
+            entity.setContent(getString(R.string.trtcliveroom_user_click_like, userInfo.userId));
         } else {
-            entity.setContent(userInfo.userName + "点了个赞");
+            entity.setContent(getString(R.string.trtcliveroom_user_click_like, userInfo.userName));
         }
-
-        mHeartLayout.addFavor();
+        mLayoutHeart.addFavor();
         mHeartCount++;
 
         entity.setType(TCConstants.PRAISE);
@@ -468,7 +462,6 @@ public abstract class TCBaseAnchorActivity extends FragmentActivity implements T
         }
     }
 
-
     /**
      *     /////////////////////////////////////////////////////////////////////////////////
      *     //
@@ -490,7 +483,6 @@ public abstract class TCBaseAnchorActivity extends FragmentActivity implements T
         mInputTextMsgDialog.show();
     }
 
-
     @Override
     public void onTextSend(String msg, boolean danmuOpen) {
         if (msg.length() == 0) {
@@ -498,13 +490,13 @@ public abstract class TCBaseAnchorActivity extends FragmentActivity implements T
         }
         byte[] byte_num = msg.getBytes(StandardCharsets.UTF_8);
         if (byte_num.length > 160) {
-            Toast.makeText(this, "请输入内容", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, R.string.trtcliveroom_tips_input_content, Toast.LENGTH_SHORT).show();
             return;
         }
 
         //消息回显
         TCChatEntity entity = new TCChatEntity();
-        entity.setSenderName("我:");
+        entity.setSenderName(getString(R.string.trtcliveroom_me));
         entity.setContent(msg);
         entity.setType(TCConstants.TEXT_TYPE);
         notifyMsg(entity);
@@ -525,9 +517,9 @@ public abstract class TCBaseAnchorActivity extends FragmentActivity implements T
                 @Override
                 public void onCallback(int code, String msg) {
                     if (code == 0) {
-                        ToastUtils.showShort("发送成功");
+                        ToastUtils.showShort(R.string.trtcliveroom_message_send_success);
                     } else {
-                        ToastUtils.showShort("发送消息失败[" + code + "]" + msg);
+                        ToastUtils.showShort(getString(R.string.trtcliveroom_message_send_fail, code, msg));
                     }
                 }
             });
@@ -567,10 +559,10 @@ public abstract class TCBaseAnchorActivity extends FragmentActivity implements T
     protected void showPublishFinishDetailsDialog() {
         //确认则显示观看detail
         FinishDetailDialogFragment dialogFragment = new FinishDetailDialogFragment();
-        Bundle                     args           = new Bundle();
-        args.putString("time", TCUtils.formattedTime(mSecond));
-        args.putString("heartCount", String.format(Locale.CHINA, "%d", mHeartCount));
-        args.putString("totalMemberCount", String.format(Locale.CHINA, "%d", mTotalMemberCount));
+        Bundle args = new Bundle();
+        args.putString(LIVE_TOTAL_TIME, TCUtils.formattedTime(mSecond));
+        args.putString(ANCHOR_HEART_COUNT, String.format(Locale.CHINA, "%d", mHeartCount));
+        args.putString(TOTAL_AUDIENCE_COUNT, String.format(Locale.CHINA, "%d", mTotalMemberCount));
         dialogFragment.setArguments(args);
         dialogFragment.setCancelable(false);
         if (dialogFragment.isAdded()) {
@@ -587,39 +579,44 @@ public abstract class TCBaseAnchorActivity extends FragmentActivity implements T
      * @param isError true错误消息（必须退出） false提示消息（可选择是否退出）
      */
     public void showExitInfoDialog(String msg, Boolean isError) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.liveroom_dialog_fragment);
-        builder.setCancelable(true);
-        builder.setTitle(msg);
+        final ExitConfirmDialogFragment dialogFragment = new ExitConfirmDialogFragment();
+        dialogFragment.setCancelable(false);
+        dialogFragment.setMessage(msg);
 
-        if (!isError) {
-            builder.setPositiveButton("确定", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    dialog.dismiss();
-                    exitRoom();
-                    showPublishFinishDetailsDialog();
-                }
-            });
-            builder.setNegativeButton("取消", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    dialog.dismiss();
-                }
-            });
-        } else {
-            //当情况为错误的时候，直接停止推流
-            exitRoom();
-            builder.setPositiveButton("确定", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    dialog.dismiss();
-                    showPublishFinishDetailsDialog();
-                }
-            });
+        if (dialogFragment.isAdded()) {
+            dialogFragment.dismiss();
+            return;
         }
-        AlertDialog alertDialog = builder.create();
-        alertDialog.show();
-        alertDialog.setCanceledOnTouchOutside(false);
+
+        if (isError) {
+            exitRoom();
+            dialogFragment.setPositiveClickListener(new ExitConfirmDialogFragment.PositiveClickListener() {
+                @Override
+                public void onClick() {
+                    dialogFragment.dismiss();
+                    showPublishFinishDetailsDialog();
+                }
+            });
+            dialogFragment.show(getFragmentManager(), "ExitConfirmDialogFragment");
+            return;
+        }
+
+        dialogFragment.setPositiveClickListener(new ExitConfirmDialogFragment.PositiveClickListener() {
+            @Override
+            public void onClick() {
+                dialogFragment.dismiss();
+                exitRoom();
+                showPublishFinishDetailsDialog();
+            }
+        });
+
+        dialogFragment.setNegativeClickListener(new ExitConfirmDialogFragment.NegativeClickListener() {
+            @Override
+            public void onClick() {
+                dialogFragment.dismiss();
+            }
+        });
+        dialogFragment.show(getFragmentManager(), "ExitConfirmDialogFragment");
     }
 
     /**
@@ -630,10 +627,10 @@ public abstract class TCBaseAnchorActivity extends FragmentActivity implements T
      */
     protected void showErrorAndQuit(int errorCode, String errorMsg) {
         if (mErrorDialog == null) {
-            android.support.v7.app.AlertDialog.Builder builder = new android.support.v7.app.AlertDialog.Builder(this, R.style.LiveRoomDialogTheme)
-                    .setTitle("错误")
+            android.support.v7.app.AlertDialog.Builder builder = new android.support.v7.app.AlertDialog.Builder(this, R.style.TRTCLiveRoomDialogTheme)
+                    .setTitle(R.string.trtcliveroom_error)
                     .setMessage(errorMsg)
-                    .setNegativeButton("知道了", new DialogInterface.OnClickListener() {
+                    .setNegativeButton(R.string.trtcliveroom_get_it, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             mErrorDialog.dismiss();
@@ -693,7 +690,6 @@ public abstract class TCBaseAnchorActivity extends FragmentActivity implements T
             mBroadcastTimerTask.cancel();
         }
     }
-
 
     @Override
     public void onError(int code, String message) {

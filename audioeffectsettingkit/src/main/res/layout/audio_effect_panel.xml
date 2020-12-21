@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_gravity="bottom"
-    android:background="@drawable/audio_effect_setting_bg_gradient"
+    android:id="@+id/ll_panel"
     android:orientation="vertical">
 
     <LinearLayout
@@ -139,7 +139,7 @@
                 android:text="00:00"
                 android:visibility="gone"
                 android:textColor="@android:color/white"
-                android:textSize="14sp" />
+                android:textSize="14sp"/>
 
             <TextView
                 android:id="@+id/tv_bgm_end_time"
@@ -151,7 +151,7 @@
                 android:text="/04:00"
                 android:visibility="gone"
                 android:textColor="@android:color/white"
-                android:textSize="14sp" />
+                android:textSize="14sp"/>
 
 
             <ImageButton
@@ -165,7 +165,7 @@
                 android:paddingLeft="10dp"
                 android:visibility="gone"
                 android:paddingRight="20dp"
-                android:src="@drawable/audio_effect_setting_bgm_play" />
+                android:src="@drawable/audio_effect_setting_bgm_play"/>
 
         </LinearLayout>
 

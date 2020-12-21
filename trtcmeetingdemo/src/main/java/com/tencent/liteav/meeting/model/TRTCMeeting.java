@@ -1,8 +1,11 @@
 package com.tencent.liteav.meeting.model;
 
+import android.app.Activity;
 import android.content.Context;
 import android.os.Handler;
 
+import com.faceunity.nama.FURenderer;
+import com.tencent.liteav.beauty.TXBeautyManager;
 import com.tencent.liteav.meeting.model.impl.TRTCMeetingImpl;
 import com.tencent.rtmp.ui.TXCloudVideoView;
 import com.tencent.trtc.TRTCCloudDef;
@@ -19,6 +22,15 @@ public abstract class TRTCMeeting {
      */
     public static synchronized TRTCMeeting sharedInstance(Context context) {
         return TRTCMeetingImpl.sharedInstance(context);
+    }
+
+    /**
+     * 初始化自定义采集和渲染的对象
+     *
+     * @return
+     */
+    public FURenderer createCustomRenderer(Activity activity, boolean isFrontCamera) {
+        return null;
     }
 
     /**
@@ -54,10 +66,11 @@ public abstract class TRTCMeeting {
     public abstract void setDelegateHandler(Handler handler);
 
     /**
+     * 登录
      *
      * @param sdkAppId 您可以在实时音视频控制台 >【[应用管理](https://console.cloud.tencent.com/trtc/app)】> 应用信息中查看 SDKAppID
-     * @param userId 当前用户的 ID，字符串类型，只允许包含英文字母（a-z 和 A-Z）、数字（0-9）、连词符（-）和下划线（\_）
-     * @param userSig 腾讯云设计的一种安全保护签名，获取方式请参考 [如何计算 UserSig](https://cloud.tencent.com/document/product/647/17275)。
+     * @param userId   当前用户的 ID，字符串类型，只允许包含英文字母（a-z 和 A-Z）、数字（0-9）、连词符（-）和下划线（\_）
+     * @param userSig  腾讯云设计的一种安全保护签名，获取方式请参考 [如何计算 UserSig](https://cloud.tencent.com/document/product/647/17275)。
      * @param callback 登录回调，成功时 code 为0
      */
     public abstract void login(int sdkAppId, String userId, String userSig, TRTCMeetingCallback.ActionCallback callback);
@@ -228,9 +241,17 @@ public abstract class TRTCMeeting {
 
     /**
      * 设置本地画面镜像预览模式
+     *
      * @param type 见 TRTCCloudDef.TRTC_VIDEO_MIRROR_TYPE_AUTO / TRTC_VIDEO_MIRROR_TYPE_ENABLE / TRTC_VIDEO_MIRROR_TYPE_DISABLE
      */
     public abstract void setLocalViewMirror(int type);
+
+    /**
+     * 设置网络qos参数
+     *
+     * @param qosParam
+     */
+    public abstract void setNetworkQosParam(TRTCCloudDef.TRTCNetworkQosParam qosParam);
 
     //////////////////////////////////////////////////////////
     //
@@ -311,16 +332,17 @@ public abstract class TRTCMeeting {
 
     /**
      * 获取美颜管理对象
-     *
+     * <p>
      * 通过美颜管理，您可以使用以下功能：
      * - 设置”美颜风格”、”美白”、“红润”、“大眼”、“瘦脸”、“V脸”、“下巴”、“短脸”、“瘦鼻”、“亮眼”、“白牙”、“祛眼袋”、“祛皱纹”、“祛法令纹”等美容效果。
      * - 调整“发际线”、“眼间距”、“眼角”、“嘴形”、“鼻翼”、“鼻子位置”、“嘴唇厚度”、“脸型”
      * - 设置人脸挂件（素材）等动态效果
      * - 添加美妆
      * - 进行手势识别
+     *
      * @return
      */
-//    public abstract TXBeautyManager getBeautyManager();
+    public abstract TXBeautyManager getBeautyManager();
 
     //////////////////////////////////////////////////////////
     //

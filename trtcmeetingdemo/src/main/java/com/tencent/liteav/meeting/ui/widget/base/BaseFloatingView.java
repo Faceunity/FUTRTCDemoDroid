@@ -3,6 +3,7 @@ package com.tencent.liteav.meeting.ui.widget.base;
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
+import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.WindowManager;
 import android.widget.LinearLayout;

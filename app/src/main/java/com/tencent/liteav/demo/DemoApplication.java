@@ -1,16 +1,13 @@
 package com.tencent.liteav.demo;
 
-import android.app.Activity;
-import android.content.Intent;
 import android.os.Build;
-import android.os.Bundle;
 import android.os.StrictMode;
 import android.support.multidex.MultiDexApplication;
+import android.util.Log;
 
-import com.blankj.utilcode.util.ServiceUtils;
 import com.tencent.bugly.crashreport.CrashReport;
-import com.tencent.liteav.login.ProfileManager;
 import com.tencent.rtmp.TXLiveBase;
+import com.tencent.trtc.TRTCCloud;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -21,7 +18,7 @@ import java.lang.reflect.Method;
 
 
 public class DemoApplication extends MultiDexApplication {
-
+    private static final String TAG = "DemoApplication";
     //    private RefWatcher mRefWatcher;
     private static DemoApplication instance;
 
@@ -43,6 +40,9 @@ public class DemoApplication extends MultiDexApplication {
 
         TXLiveBase.getInstance().setLicence(instance, licenceUrl, licenseKey);
 
+        String sdkVersion = TRTCCloud.getSDKVersion();
+        Log.i(TAG, "onCreate: TRTC SDK version " + sdkVersion);
+
         // 短视频licence设置
         StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
         StrictMode.setVmPolicy(builder.build());
@@ -50,57 +50,12 @@ public class DemoApplication extends MultiDexApplication {
             builder.detectFileUriExposure();
         }
         closeAndroidPDialog();
-
-        registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
-            @Override
-            public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
-
-            }
-
-            @Override
-            public void onActivityStarted(Activity activity) {
-
-            }
-
-            @Override
-            public void onActivityResumed(Activity activity) {
-                if (ProfileManager.getInstance().isLogin()
-                        && !ServiceUtils.isServiceRunning(CallService.class)) {
-                    startCallService();
-                }
-            }
-
-            @Override
-            public void onActivityPaused(Activity activity) {
-
-            }
-
-            @Override
-            public void onActivityStopped(Activity activity) {
-
-            }
-
-            @Override
-            public void onActivitySaveInstanceState(Activity activity, Bundle outState) {
-
-            }
-
-            @Override
-            public void onActivityDestroyed(Activity activity) {
-
-            }
-        });
     }
 
-    private void startCallService() {
-        Intent intent = new Intent(this, CallService.class);
-        startService(intent);
-    }
-
-//    public static RefWatcher getRefWatcher(Context context) {
-//        DemoApplication application = (DemoApplication) context.getApplicationContext();
-//        return application.mRefWatcher;
-//    }
+    //    public static RefWatcher getRefWatcher(Context context) {
+    //        DemoApplication application = (DemoApplication) context.getApplicationContext();
+    //        return application.mRefWatcher;
+    //    }
 
     public static DemoApplication getApplication() {
         return instance;

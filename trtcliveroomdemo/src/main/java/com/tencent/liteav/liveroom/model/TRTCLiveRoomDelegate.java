@@ -1,5 +1,7 @@
 package com.tencent.liteav.liveroom.model;
 
+import java.util.List;
+
 public interface TRTCLiveRoomDelegate {
 
     /**

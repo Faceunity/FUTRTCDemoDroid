@@ -27,6 +27,7 @@ import android.util.TypedValue;
 import android.widget.ImageView;
 
 import com.squareup.picasso.Picasso;
+import com.tencent.liteav.liveroom.R;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -431,7 +432,7 @@ public class TCUtils {
     public static final int FILTERTYPE_huaijiu   = 13;    //怀旧滤镜
     public static final int FILTERTYPE_landiao   = 14;    //蓝调滤镜
     public static final int FILTERTYPE_qingliang = 15;    //清凉滤镜
-    public static final int FILTERTYPE_rixi      = 16;    //日系滤镜
+    public static final int FILTERTYPE_rixi = 16;    //日系滤镜
 
     private static Bitmap decodeResource(Resources resources, int id) {
         TypedValue value = new TypedValue();
@@ -441,63 +442,63 @@ public class TCUtils {
         return BitmapFactory.decodeResource(resources, id, opts);
     }
 
-//    public static Bitmap getFilterBitmap(Resources resources, int filterType) {
-//        Bitmap bmp = null;
-//        switch (filterType) {
-//            case FILTERTYPE_biaozhun:
-//                bmp = decodeResource(resources, R.drawable.filter_biaozhun);
-//                break;
-//            case FILTERTYPE_yinghong:
-//                bmp = decodeResource(resources, R.drawable.filter_yinghong);
-//                break;
-//            case FILTERTYPE_yunshang:
-//                bmp = decodeResource(resources, R.drawable.filter_yunshang);
-//                break;
-//            case FILTERTYPE_chunzhen:
-//                bmp = decodeResource(resources, R.drawable.filter_chunzhen);
-//                break;
-//            case FILTERTYPE_bailan:
-//                bmp = decodeResource(resources, R.drawable.filter_bailan);
-//                break;
-//            case FILTERTYPE_yuanqi:
-//                bmp = decodeResource(resources, R.drawable.filter_yuanqi);
-//                break;
-//            case FILTERTYPE_chaotuo:
-//                bmp = decodeResource(resources, R.drawable.filter_chaotuo);
-//                break;
-//            case FILTERTYPE_xiangfen:
-//                bmp = decodeResource(resources, R.drawable.filter_xiangfen);
-//                break;
-//            case FILTERTYPE_langman:
-//                bmp = decodeResource(resources, R.drawable.filter_langman);
-//                break;
-//            case FILTERTYPE_qingxin:
-//                bmp = decodeResource(resources, R.drawable.filter_qingxin);
-//                break;
-//            case FILTERTYPE_weimei:
-//                bmp = decodeResource(resources, R.drawable.filter_weimei);
-//                break;
-//            case FILTERTYPE_fennen:
-//                bmp = decodeResource(resources, R.drawable.filter_fennen);
-//                break;
-//            case FILTERTYPE_huaijiu:
-//                bmp = decodeResource(resources, R.drawable.filter_huaijiu);
-//                break;
-//            case FILTERTYPE_landiao:
-//                bmp = decodeResource(resources, R.drawable.filter_landiao);
-//                break;
-//            case FILTERTYPE_qingliang:
-//                bmp = decodeResource(resources, R.drawable.filter_qingliang);
-//                break;
-//            case FILTERTYPE_rixi:
-//                bmp = decodeResource(resources, R.drawable.filter_rixi);
-//                break;
-//            default:
-//                bmp = null;
-//                break;
-//        }
-//        return bmp;
-//    }
+    public static Bitmap getFilterBitmap(Resources resources, int filterType) {
+        Bitmap bmp = null;
+        switch (filterType) {
+            case FILTERTYPE_biaozhun:
+                bmp = decodeResource(resources, R.drawable.beauty_filter_biaozhun);
+                break;
+            case FILTERTYPE_yinghong:
+                bmp = decodeResource(resources, R.drawable.beauty_filter_yinghong);
+                break;
+            case FILTERTYPE_yunshang:
+                bmp = decodeResource(resources, R.drawable.beauty_filter_yunshang);
+                break;
+            case FILTERTYPE_chunzhen:
+                bmp = decodeResource(resources, R.drawable.beauty_filter_chunzhen);
+                break;
+            case FILTERTYPE_bailan:
+                bmp = decodeResource(resources, R.drawable.beauty_filter_bailan);
+                break;
+            case FILTERTYPE_yuanqi:
+                bmp = decodeResource(resources, R.drawable.beauty_filter_yuanqi);
+                break;
+            case FILTERTYPE_chaotuo:
+                bmp = decodeResource(resources, R.drawable.beauty_filter_chaotuo);
+                break;
+            case FILTERTYPE_xiangfen:
+                bmp = decodeResource(resources, R.drawable.beauty_filter_xiangfen);
+                break;
+            case FILTERTYPE_langman:
+                bmp = decodeResource(resources, R.drawable.beauty_filter_langman);
+                break;
+            case FILTERTYPE_qingxin:
+                bmp = decodeResource(resources, R.drawable.beauty_filter_qingxin);
+                break;
+            case FILTERTYPE_weimei:
+                bmp = decodeResource(resources, R.drawable.beauty_filter_weimei);
+                break;
+            case FILTERTYPE_fennen:
+                bmp = decodeResource(resources, R.drawable.beauty_filter_fennen);
+                break;
+            case FILTERTYPE_huaijiu:
+                bmp = decodeResource(resources, R.drawable.beauty_filter_huaijiu);
+                break;
+            case FILTERTYPE_landiao:
+                bmp = decodeResource(resources, R.drawable.beauty_filter_landiao);
+                break;
+            case FILTERTYPE_qingliang:
+                bmp = decodeResource(resources, R.drawable.beauty_filter_qingliang);
+                break;
+            case FILTERTYPE_rixi:
+                bmp = decodeResource(resources, R.drawable.beauty_filter_rixi);
+                break;
+            default:
+                bmp = null;
+                break;
+        }
+        return bmp;
+    }
 
     /**
      * 绿幕定义

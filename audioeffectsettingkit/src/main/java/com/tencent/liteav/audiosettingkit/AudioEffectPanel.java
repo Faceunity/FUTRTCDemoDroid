@@ -1,6 +1,7 @@
 package com.tencent.liteav.audiosettingkit;
 
 import android.content.Context;
+import android.graphics.drawable.Drawable;
 import android.os.Handler;
 import android.os.Looper;
 import android.support.v7.widget.LinearLayoutManager;
@@ -19,10 +20,8 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import com.tencent.liteav.audio.TXAudioEffectManager;
-import com.tencent.trtc.TRTCCloudDef;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import de.hdodenhof.circleimageview.CircleImageView;
@@ -30,6 +29,27 @@ import de.hdodenhof.circleimageview.CircleImageView;
 public class AudioEffectPanel extends FrameLayout {
 
     private static final String TAG = AudioEffectPanel.class.getSimpleName();
+
+    private static final int AUDIO_REVERB_TYPE_0 = 0;
+    private static final int AUDIO_REVERB_TYPE_1 = 1;
+    private static final int AUDIO_REVERB_TYPE_2 = 2;
+    private static final int AUDIO_REVERB_TYPE_3 = 3;
+    private static final int AUDIO_REVERB_TYPE_4 = 4;
+    private static final int AUDIO_REVERB_TYPE_5 = 5;
+    private static final int AUDIO_REVERB_TYPE_6 = 6;
+    private static final int AUDIO_REVERB_TYPE_7 = 7;
+    private static final int AUDIO_VOICECHANGER_TYPE_0 = 0;
+    private static final int AUDIO_VOICECHANGER_TYPE_1 = 1;
+    private static final int AUDIO_VOICECHANGER_TYPE_2 = 2;
+    private static final int AUDIO_VOICECHANGER_TYPE_3 = 3;
+    private static final int AUDIO_VOICECHANGER_TYPE_4 = 4;
+    private static final int AUDIO_VOICECHANGER_TYPE_5 = 5;
+    private static final int AUDIO_VOICECHANGER_TYPE_6 = 6;
+    private static final int AUDIO_VOICECHANGER_TYPE_7 = 7;
+    private static final int AUDIO_VOICECHANGER_TYPE_8 = 8;
+    private static final int AUDIO_VOICECHANGER_TYPE_9 = 9;
+    private static final int AUDIO_VOICECHANGER_TYPE_10 = 10;
+    private static final int AUDIO_VOICECHANGER_TYPE_11 = 11;
 
     private Context mContext;
     private Button mBtnSelectedSong;
@@ -57,6 +77,7 @@ public class AudioEffectPanel extends FrameLayout {
     private TextView mTvTotalTime;
     private TextView mTvBGM;
     private LinearLayout mLayoutSelectBGM;
+    private LinearLayout mMainPanel;
     private ImageButton mImgbtnBGMPlay;
     private TXAudioEffectManager mAudioEffectManager;
     private BGMListener mBGMPlayListenr;
@@ -64,21 +85,16 @@ public class AudioEffectPanel extends FrameLayout {
     private static final String ONLINE_BGM_SECOND = "http://dldir1.qq.com/hudongzhibo/LiteAV/demomusic/testmusic2.mp3";
     private static final String ONLINE_BGM_THIRD = "http://dldir1.qq.com/hudongzhibo/LiteAV/demomusic/testmusic3.mp3";
 
-    private int mBGMId;
+    private int mBGMId = -1;
+    private float mPitch = 0;
     private boolean mIsPlaying = false;
+    private boolean mIsPause = false;
     private boolean mIsPlayEnd = false;
 
-    private static final List<String> REVERB_LIST = Arrays.asList("关闭混响", "KTV", "小房间", "大会堂", "低沉", "洪亮", "金属声", "磁性");
-    private static final List<Integer> REVERB_TYPE_ARR = Arrays.asList(TRTCCloudDef.TRTC_REVERB_TYPE_0,
-            TRTCCloudDef.TRTC_REVERB_TYPE_1, TRTCCloudDef.TRTC_REVERB_TYPE_2, TRTCCloudDef.TRTC_REVERB_TYPE_3,
-            TRTCCloudDef.TRTC_REVERB_TYPE_4, TRTCCloudDef.TRTC_REVERB_TYPE_5, TRTCCloudDef.TRTC_REVERB_TYPE_6, TRTCCloudDef.TRTC_REVERB_TYPE_7);
-    // 对应 SDK 的变声列表（TRTCCloudDef中定义）
-    private static final List<String> VOICE_CHANGER_LIST = Arrays.asList("关闭变声", "熊孩子", "萝莉", "大叔", "重金属", "感冒", "外国人", "困兽", "死肥仔", "强电流", "重机械", "空灵");
-    private static final List<Integer> VOICE_CHANGER_TYPE_ARR = Arrays.asList(TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_0,
-            TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_1, TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_2, TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_3,
-            TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_4, TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_5, TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_6,
-            TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_7, TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_8, TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_9,
-            TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_10, TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_11);
+    private int mBGMVolume = 100;
+
+    private int mVoiceChangerPosition = 0;
+    private int mVoiceReverbPosition = 0;
 
     public AudioEffectPanel(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -89,8 +105,9 @@ public class AudioEffectPanel extends FrameLayout {
 
     private void initView() {
 
+        mMainPanel = (LinearLayout) findViewById(R.id.ll_panel);
         mTvClosePanel = (TextView) findViewById(R.id.tv_close_panel);
-        mTvBGMVolume = (TextView) findViewById(R.id.tv_bgm_volume);
+        mTvBGMVolume =  (TextView) findViewById(R.id.tv_bgm_volume);
         mTvMicVolume = (TextView) findViewById(R.id.tv_mic_volume);
         mTvPitchLevel = (TextView) findViewById(R.id.tv_pitch_level);
         mTvActor = (TextView) findViewById(R.id.tv_actor);
@@ -149,7 +166,8 @@ public class AudioEffectPanel extends FrameLayout {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 mTvBGMVolume.setText(progress + "");
-                if (mAudioEffectManager != null) {
+                mBGMVolume = progress;
+                if (mAudioEffectManager != null && mBGMId != -1) {
                     mAudioEffectManager.setMusicPlayoutVolume(mBGMId, progress);
                     mAudioEffectManager.setMusicPublishVolume(mBGMId, progress);
                 }
@@ -169,7 +187,9 @@ public class AudioEffectPanel extends FrameLayout {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 float pitch = ((progress - 50) / (float) 50);
                 mTvPitchLevel.setText(pitch + "");
-                if (mAudioEffectManager != null) {
+                mPitch = pitch;
+                if (mAudioEffectManager != null && mBGMId != -1) {
+                    Log.d(TAG, "setMusicPitch: mBGMId -> " + mBGMId + ", pitch -> " + pitch);
                     mAudioEffectManager.setMusicPitch(mBGMId, pitch);
                 }
             }
@@ -211,13 +231,9 @@ public class AudioEffectPanel extends FrameLayout {
                 if (mAudioEffectManager != null) {
                     mAudioEffectManager.setVoiceChangerType(translateChangerType(type));
                 }
-                for (int i = 0; i < mChangerItemEntityList.size(); i++) {
-                    if (position == i) {
-                        mChangerItemEntityList.get(i).mIsSelected = true;
-                    } else {
-                        mChangerItemEntityList.get(i).mIsSelected = false;
-                    }
-                }
+                mChangerItemEntityList.get(position).mIsSelected = true;
+                mChangerItemEntityList.get(mVoiceChangerPosition).mIsSelected = false;
+                mVoiceChangerPosition = position;
                 mChangerRVAdapter.notifyDataSetChanged();
             }
         });
@@ -234,13 +250,9 @@ public class AudioEffectPanel extends FrameLayout {
                 if (mAudioEffectManager != null) {
                     mAudioEffectManager.setVoiceReverbType(translateReverbType(type));
                 }
-                for (int i = 0; i < mReverbItemEntityList.size(); i++) {
-                    if (position == i) {
-                        mReverbItemEntityList.get(i).mIsSelected = true;
-                    } else {
-                        mReverbItemEntityList.get(i).mIsSelected = false;
-                    }
-                }
+                mReverbItemEntityList.get(position).mIsSelected = true;
+                mReverbItemEntityList.get(mVoiceReverbPosition).mIsSelected = false;
+                mVoiceReverbPosition = position;
                 mReverbRVAdapter.notifyDataSetChanged();
             }
         });
@@ -264,40 +276,40 @@ public class AudioEffectPanel extends FrameLayout {
     private TXAudioEffectManager.TXVoiceChangerType translateChangerType(int type) {
         TXAudioEffectManager.TXVoiceChangerType changerType = TXAudioEffectManager.TXVoiceChangerType.TXLiveVoiceChangerType_0;
         switch (type) {
-            case TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_0:
+            case AUDIO_VOICECHANGER_TYPE_0:
                 changerType = TXAudioEffectManager.TXVoiceChangerType.TXLiveVoiceChangerType_0;
                 break;
-            case TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_1:
+            case AUDIO_VOICECHANGER_TYPE_1:
                 changerType = TXAudioEffectManager.TXVoiceChangerType.TXLiveVoiceChangerType_1;
                 break;
-            case TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_2:
+            case AUDIO_VOICECHANGER_TYPE_2:
                 changerType = TXAudioEffectManager.TXVoiceChangerType.TXLiveVoiceChangerType_2;
                 break;
-            case TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_3:
+            case AUDIO_VOICECHANGER_TYPE_3:
                 changerType = TXAudioEffectManager.TXVoiceChangerType.TXLiveVoiceChangerType_3;
                 break;
-            case TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_4:
+            case AUDIO_VOICECHANGER_TYPE_4:
                 changerType = TXAudioEffectManager.TXVoiceChangerType.TXLiveVoiceChangerType_4;
                 break;
-            case TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_5:
+            case AUDIO_VOICECHANGER_TYPE_5:
                 changerType = TXAudioEffectManager.TXVoiceChangerType.TXLiveVoiceChangerType_5;
                 break;
-            case TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_6:
+            case AUDIO_VOICECHANGER_TYPE_6:
                 changerType = TXAudioEffectManager.TXVoiceChangerType.TXLiveVoiceChangerType_6;
                 break;
-            case TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_7:
+            case AUDIO_VOICECHANGER_TYPE_7:
                 changerType = TXAudioEffectManager.TXVoiceChangerType.TXLiveVoiceChangerType_7;
                 break;
-            case TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_8:
+            case AUDIO_VOICECHANGER_TYPE_8:
                 changerType = TXAudioEffectManager.TXVoiceChangerType.TXLiveVoiceChangerType_8;
                 break;
-            case TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_9:
+            case AUDIO_VOICECHANGER_TYPE_9:
                 changerType = TXAudioEffectManager.TXVoiceChangerType.TXLiveVoiceChangerType_9;
                 break;
-            case TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_10:
+            case AUDIO_VOICECHANGER_TYPE_10:
                 changerType = TXAudioEffectManager.TXVoiceChangerType.TXLiveVoiceChangerType_10;
                 break;
-            case TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_11:
+            case AUDIO_VOICECHANGER_TYPE_11:
                 changerType = TXAudioEffectManager.TXVoiceChangerType.TXLiveVoiceChangerType_11;
                 break;
         }
@@ -307,28 +319,28 @@ public class AudioEffectPanel extends FrameLayout {
     private TXAudioEffectManager.TXVoiceReverbType translateReverbType(int type) {
         TXAudioEffectManager.TXVoiceReverbType reverbType = TXAudioEffectManager.TXVoiceReverbType.TXLiveVoiceReverbType_0;
         switch (type) {
-            case TRTCCloudDef.TRTC_REVERB_TYPE_0:
+            case AUDIO_REVERB_TYPE_0:
                 reverbType = TXAudioEffectManager.TXVoiceReverbType.TXLiveVoiceReverbType_0;
                 break;
-            case TRTCCloudDef.TRTC_REVERB_TYPE_1:
+            case AUDIO_REVERB_TYPE_1:
                 reverbType = TXAudioEffectManager.TXVoiceReverbType.TXLiveVoiceReverbType_1;
                 break;
-            case TRTCCloudDef.TRTC_REVERB_TYPE_2:
+            case AUDIO_REVERB_TYPE_2:
                 reverbType = TXAudioEffectManager.TXVoiceReverbType.TXLiveVoiceReverbType_2;
                 break;
-            case TRTCCloudDef.TRTC_REVERB_TYPE_3:
+            case AUDIO_REVERB_TYPE_3:
                 reverbType = TXAudioEffectManager.TXVoiceReverbType.TXLiveVoiceReverbType_3;
                 break;
-            case TRTCCloudDef.TRTC_REVERB_TYPE_4:
+            case AUDIO_REVERB_TYPE_4:
                 reverbType = TXAudioEffectManager.TXVoiceReverbType.TXLiveVoiceReverbType_4;
                 break;
-            case TRTCCloudDef.TRTC_REVERB_TYPE_5:
+            case AUDIO_REVERB_TYPE_5:
                 reverbType = TXAudioEffectManager.TXVoiceReverbType.TXLiveVoiceReverbType_5;
                 break;
-            case TRTCCloudDef.TRTC_REVERB_TYPE_6:
+            case AUDIO_REVERB_TYPE_6:
                 reverbType = TXAudioEffectManager.TXVoiceReverbType.TXLiveVoiceReverbType_6;
                 break;
-            case TRTCCloudDef.TRTC_REVERB_TYPE_7:
+            case AUDIO_REVERB_TYPE_7:
                 reverbType = TXAudioEffectManager.TXVoiceReverbType.TXLiveVoiceReverbType_7;
                 break;
         }
@@ -345,44 +357,51 @@ public class AudioEffectPanel extends FrameLayout {
             mHandler.removeCallbacksAndMessages(null);
         }
         mIsPlaying = false;
+        mIsPause = false;
         mIsPlayEnd = false;
         mBGMPlayListenr = null;
     }
 
+    public void stopPlay() {
+        if (mAudioEffectManager != null) {
+            mAudioEffectManager.stopPlayMusic(mBGMId);
+        }
+    }
+
     private List<ItemEntity> createAudioChangeItems() {
         List<ItemEntity> list = new ArrayList<>();
-        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_changetype_original), R.drawable.audio_effect_setting_changetype_original_open, TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_0));
-        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_changetype_child), R.drawable.audio_effect_setting_changetype_child, TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_1));
-        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_changetype_luoli), R.drawable.audio_effect_setting_changetype_luoli, TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_2));
-        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_changetype_dashu), R.drawable.audio_effect_setting_changetype_dashu, TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_3));
-        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_changetype_metal), R.drawable.audio_effect_setting_changetype_metal, TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_4));
-        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_changetype_sick), R.drawable.audio_effect_setting_changetype_sick, TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_5));
-        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_changetype_foreign), R.drawable.audio_effect_setting_changetype_foreign, TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_6));
-        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_changetype_kunsou), R.drawable.audio_effect_setting_changetype_kunsou, TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_7));
-        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_changetype_feizai), R.drawable.audio_effect_setting_changetype_feizai, TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_8));
-        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_changetype_dianliu), R.drawable.audio_effect_setting_changetype_dianliu, TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_9));
-        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_changetype_machine), R.drawable.audio_effect_setting_changetype_machine, TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_10));
-        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_changetype_kongling), R.drawable.audio_effect_setting_changetype_kongling, TRTCCloudDef.TRTC_VOICE_CHANGER_TYPE_11));
+        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_changetype_original), R.drawable.audio_effect_setting_changetype_original_open, AUDIO_VOICECHANGER_TYPE_0));
+        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_changetype_child), R.drawable.audio_effect_setting_changetype_child, AUDIO_VOICECHANGER_TYPE_1));
+        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_changetype_luoli), R.drawable.audio_effect_setting_changetype_luoli, AUDIO_VOICECHANGER_TYPE_2));
+        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_changetype_dashu), R.drawable.audio_effect_setting_changetype_dashu, AUDIO_VOICECHANGER_TYPE_3));
+        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_changetype_metal), R.drawable.audio_effect_setting_changetype_metal, AUDIO_VOICECHANGER_TYPE_4));
+        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_changetype_sick), R.drawable.audio_effect_setting_changetype_sick, AUDIO_VOICECHANGER_TYPE_5));
+        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_changetype_foreign), R.drawable.audio_effect_setting_changetype_foreign, AUDIO_VOICECHANGER_TYPE_6));
+        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_changetype_kunsou), R.drawable.audio_effect_setting_changetype_kunsou, AUDIO_VOICECHANGER_TYPE_7));
+        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_changetype_feizai), R.drawable.audio_effect_setting_changetype_feizai, AUDIO_VOICECHANGER_TYPE_8));
+        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_changetype_dianliu), R.drawable.audio_effect_setting_changetype_dianliu, AUDIO_VOICECHANGER_TYPE_9));
+        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_changetype_machine), R.drawable.audio_effect_setting_changetype_machine, AUDIO_VOICECHANGER_TYPE_10));
+        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_changetype_kongling), R.drawable.audio_effect_setting_changetype_kongling, AUDIO_VOICECHANGER_TYPE_11));
         return list;
     }
 
     private List<ItemEntity> createReverbItems() {
         List<ItemEntity> list = new ArrayList<>();
-        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_reverbtype_origin), R.drawable.audio_effect_setting_reverbtype_origin_high, TRTCCloudDef.TRTC_REVERB_TYPE_0));
-        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_reverbtype_ktv), R.drawable.audio_effect_setting_reverbtype_ktv, TRTCCloudDef.TRTC_REVERB_TYPE_1));
-        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_reverbtype_room), R.drawable.audio_effect_setting_reverbtype_room, TRTCCloudDef.TRTC_REVERB_TYPE_2));
-        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_reverbtype_meeting), R.drawable.audio_effect_setting_reverbtype_meeting, TRTCCloudDef.TRTC_REVERB_TYPE_3));
-        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_reverbtype_lowdeep), R.drawable.audio_effect_setting_reverbtype_lowdeep, TRTCCloudDef.TRTC_REVERB_TYPE_4));
-        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_reverbtype_hongliang), R.drawable.audio_effect_setting_reverbtype_hongliang, TRTCCloudDef.TRTC_REVERB_TYPE_5));
-        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_reverbtype_heavymetal), R.drawable.audio_effect_setting_reverbtype_heavymetal, TRTCCloudDef.TRTC_REVERB_TYPE_6));
-        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_reverbtype_cixing), R.drawable.audio_effect_setting_reverbtype_cixing, TRTCCloudDef.TRTC_REVERB_TYPE_7));
+        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_reverbtype_origin), R.drawable.audio_effect_setting_reverbtype_origin_high, AUDIO_REVERB_TYPE_0));
+        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_reverbtype_ktv), R.drawable.audio_effect_setting_reverbtype_ktv, AUDIO_REVERB_TYPE_1));
+        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_reverbtype_room), R.drawable.audio_effect_setting_reverbtype_room, AUDIO_REVERB_TYPE_2));
+        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_reverbtype_meeting), R.drawable.audio_effect_setting_reverbtype_meeting, AUDIO_REVERB_TYPE_3));
+        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_reverbtype_lowdeep), R.drawable.audio_effect_setting_reverbtype_lowdeep, AUDIO_REVERB_TYPE_4));
+        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_reverbtype_hongliang), R.drawable.audio_effect_setting_reverbtype_hongliang, AUDIO_REVERB_TYPE_5));
+        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_reverbtype_heavymetal), R.drawable.audio_effect_setting_reverbtype_heavymetal, AUDIO_REVERB_TYPE_6));
+        list.add(new ItemEntity(getResources().getString(R.string.audio_effect_setting_reverbtype_cixing), R.drawable.audio_effect_setting_reverbtype_cixing, AUDIO_REVERB_TYPE_7));
         return list;
     }
 
     public class ItemEntity {
         public String mTitle;
-        public int mIconId;
-        public int mType;
+        public int    mIconId;
+        public int    mType;
         public boolean mIsSelected = false;
 
         public ItemEntity(String title, int iconId, int type) {
@@ -395,7 +414,7 @@ public class AudioEffectPanel extends FrameLayout {
     public class RecyclerViewAdapter extends
             RecyclerView.Adapter<RecyclerViewAdapter.ViewHolder> {
 
-        private Context context;
+        private Context              context;
         private List<ItemEntity> list;
         private OnItemClickListener onItemClickListener;
 
@@ -425,7 +444,7 @@ public class AudioEffectPanel extends FrameLayout {
                     mTitleTv.setTextColor(getResources().getColor(R.color.white));
                 } else {
                     mItemImg.setBorderWidth(0);
-                    mItemImg.setBorderColor(getResources().getColor(R.color.transparent));
+                    mItemImg.setBorderColor(getResources().getColor(android.R.color.transparent));
                     mTitleTv.setTextColor(getResources().getColor(R.color.white_alpha));
                 }
                 itemView.setOnClickListener(new OnClickListener() {
@@ -444,7 +463,7 @@ public class AudioEffectPanel extends FrameLayout {
 
         @Override
         public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            Context context = parent.getContext();
+            Context        context  = parent.getContext();
             LayoutInflater inflater = LayoutInflater.from(context);
             View view = inflater.inflate(R.layout.audio_main_entry_item, parent, false);
             ViewHolder viewHolder = new ViewHolder(view);
@@ -492,7 +511,7 @@ public class AudioEffectPanel extends FrameLayout {
         private OnItemClickListener onItemClickListener;
 
         public BGMRecyclerViewAdapter(Context context, List<BGMItemEntity> list,
-                                      OnItemClickListener onItemClickListener) {
+                                        OnItemClickListener onItemClickListener) {
             this.mContext = context;
             this.list = list;
             this.onItemClickListener = onItemClickListener;
@@ -530,7 +549,7 @@ public class AudioEffectPanel extends FrameLayout {
 
         @Override
         public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-            Context context = parent.getContext();
+            Context        context  = parent.getContext();
             LayoutInflater inflater = LayoutInflater.from(context);
             View view = inflater.inflate(R.layout.audio_bgm_entry_item, parent, false);
             ViewHolder viewHolder = new ViewHolder(view);
@@ -558,6 +577,7 @@ public class AudioEffectPanel extends FrameLayout {
 
         @Override
         public void onStart(int i, int i1) {
+
         }
 
         @Override
@@ -566,7 +586,7 @@ public class AudioEffectPanel extends FrameLayout {
             mHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    mTvStartTime.setText(formattedTime(curPtsMS / 1000) + "");
+                    mTvStartTime.setText(formattedTime(curPtsMS /1000) + "");
                 }
             });
         }
@@ -600,12 +620,78 @@ public class AudioEffectPanel extends FrameLayout {
         mAudioEffectManager = audioEffectManager;
     }
 
+    public void reset() {
+        mAudioEffectManager.stopPlayMusic(mBGMId);
+        mBGMId = -1;
+        mIsPlaying = false;
+        mIsPause = false;
+        mIsPlayEnd = false;
+
+        mSbMicVolume.setProgress(100);
+        mTvMicVolume.setText("100");
+
+        mBGMVolume = 100;
+        mSbBGMVolume.setProgress(mBGMVolume);
+        mTvBGMVolume.setText(mBGMVolume + "");
+
+        mPitch = 0;
+        mSbPitchLevel.setProgress(50);
+        mTvPitchLevel.setText("50");
+
+        mBtnSelectedSong.setVisibility(View.VISIBLE);
+        mTvBGM.setVisibility(View.VISIBLE);
+        mTvActor.setVisibility(View.GONE);
+        mTvActor.setText("");
+        mTvStartTime.setVisibility(GONE);
+        mTvTotalTime.setVisibility(GONE);
+        mImgbtnBGMPlay.setVisibility(GONE);
+
+        mChangerItemEntityList.get(mVoiceChangerPosition).mIsSelected = false;
+        mChangerRVAdapter.notifyDataSetChanged();
+        mVoiceChangerPosition = 0;
+
+        mReverbItemEntityList.get(mVoiceReverbPosition).mIsSelected = false;
+        mReverbRVAdapter.notifyDataSetChanged();
+        mVoiceReverbPosition = 0;
+
+        if (mAudioEffectManager != null) {
+            Log.d(TAG, "select changer type1 " + translateChangerType(mVoiceChangerPosition));
+            mAudioEffectManager.setVoiceChangerType(translateChangerType(mVoiceChangerPosition));
+            mAudioEffectManager.setVoiceReverbType(translateReverbType(mVoiceReverbPosition));
+        }
+    }
+
+    public void pauseBGM() {
+        if (!mIsPlaying) {
+            return;
+        }
+        mAudioEffectManager.pausePlayMusic(mBGMId);
+        mImgbtnBGMPlay.setImageResource(R.drawable.audio_effect_setting_bgm_play);
+        mIsPlaying = false;
+    }
+
+    public void resumeBGM() {
+        Log.i(TAG, "resumeBGM: mIsPlayEnd -> " + mIsPlayEnd + ", mIsPlaying -> " + mIsPlaying);
+        if (!mIsPlayEnd && !mIsPlaying && !mIsPause) {
+            mAudioEffectManager.resumePlayMusic(mBGMId);
+            mImgbtnBGMPlay.setImageResource(R.drawable.audio_effect_setting_bgm_pause);
+            mIsPlaying = true;
+        }
+    }
+
     private void handleBGM(int position, final BGMItemEntity model) {
+        Log.d(TAG, "handleBGM position " + position + ", mAudioEffectManager " + mAudioEffectManager);
         if (mAudioEffectManager == null) {
             return;
         }
-        mAudioEffectManager.stopPlayMusic(mBGMId);
+        if (mBGMId != -1) { // 已开始播放音乐，需要先停止上一次正在播放的音乐
+            mAudioEffectManager.stopPlayMusic(mBGMId);
+        }
         mBGMId = position;
+        // 开始播放音乐时，无论是否首次均需重新设置变调和音量，因为音乐id发生了变化
+        mAudioEffectManager.setMusicPitch(position, mPitch);
+        mAudioEffectManager.setMusicPlayoutVolume(position, mBGMVolume);
+        mAudioEffectManager.setMusicPublishVolume(position, mBGMVolume);
         mHandler.post(new Runnable() {
             @Override
             public void run() {
@@ -618,7 +704,7 @@ public class AudioEffectPanel extends FrameLayout {
                 mTvActor.setText(model.mTitle);
                 mTvStartTime.setVisibility(VISIBLE);
                 mTvTotalTime.setVisibility(VISIBLE);
-                mTvTotalTime.setText("/" + formattedTime(mAudioEffectManager.getMusicDurationInMS(model.mPath) / 1000) + "");
+                mTvTotalTime.setText("/" + formattedTime(mAudioEffectManager.getMusicDurationInMS(model.mPath)/1000) + "");
                 mImgbtnBGMPlay.setVisibility(VISIBLE);
                 mImgbtnBGMPlay.setImageResource(R.drawable.audio_effect_setting_bgm_pause);
             }
@@ -629,6 +715,7 @@ public class AudioEffectPanel extends FrameLayout {
         mBGMPlayListenr = new BGMListener();
         mAudioEffectManager.setMusicObserver(mBGMId, mBGMPlayListenr);
         mIsPlaying = true;
+        mIsPause = false;
 
         mImgbtnBGMPlay.setOnClickListener(new OnClickListener() {
             @Override
@@ -638,15 +725,17 @@ public class AudioEffectPanel extends FrameLayout {
                     mImgbtnBGMPlay.setImageResource(R.drawable.audio_effect_setting_bgm_pause);
                     mIsPlayEnd = false;
                     mIsPlaying = true;
-                    return;
+                    mIsPause = false;
                 } else if (mIsPlaying) {
                     mAudioEffectManager.pausePlayMusic(mBGMId);
                     mImgbtnBGMPlay.setImageResource(R.drawable.audio_effect_setting_bgm_play);
                     mIsPlaying = false;
+                    mIsPause = true;
                 } else {
                     mAudioEffectManager.resumePlayMusic(mBGMId);
                     mImgbtnBGMPlay.setImageResource(R.drawable.audio_effect_setting_bgm_pause);
                     mIsPlaying = true;
+                    mIsPause = false;
                 }
             }
         });
@@ -662,6 +751,22 @@ public class AudioEffectPanel extends FrameLayout {
 
     public interface OnAudioEffectPanelHideListener {
         void onClosePanel();
+    }
+
+    public void setPanelBackgroundColor(int color) {
+        mMainPanel.setBackgroundColor(color);
+    }
+
+    public void setPanelBackgroundResource(int resId) {
+        mMainPanel.setBackgroundResource(resId);
+    }
+
+    public void setPanelBackgroundDrawable(Drawable drawable) {
+        mMainPanel.setBackground(drawable);
+    }
+
+    public void initPanelDefaultBackground() {
+        mMainPanel.setBackground(getResources().getDrawable(R.drawable.audio_effect_setting_bg_gradient));
     }
 
     private String formattedTime(long second) {
