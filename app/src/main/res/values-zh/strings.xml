@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">FU TRTC Scene</string>
+    <string name="app_name">腾讯云 TRTC</string>
 
     <string name="btn_cancel">取消</string>
     <string name="btn_ok">确定</string>

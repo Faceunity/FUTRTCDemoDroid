@@ -16,9 +16,11 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.AppCompatImageButton;
 import android.support.v7.widget.RecyclerView;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
@@ -30,12 +32,15 @@ import android.widget.TextView;
 
 import com.blankj.utilcode.util.PermissionUtils;
 import com.blankj.utilcode.util.ToastUtils;
+import com.faceunity.nama.ui.FaceUnityView;
+import com.faceunity.nama.utils.PreferenceUtil;
+import com.tencent.liteav.demo.beauty.BeautyParams;
 import com.tencent.liteav.demo.trtc.R;
+import com.tencent.liteav.login.model.ProfileManager;
 import com.tencent.liteav.meeting.model.TRTCMeeting;
 import com.tencent.liteav.meeting.model.TRTCMeetingCallback;
 import com.tencent.liteav.meeting.model.TRTCMeetingDef;
 import com.tencent.liteav.meeting.model.TRTCMeetingDelegate;
-import com.tencent.liteav.meeting.model.impl.trtc.TXTRTCMeeting;
 import com.tencent.liteav.meeting.ui.remote.RemoteUserListView;
 import com.tencent.liteav.meeting.ui.widget.feature.FeatureConfig;
 import com.tencent.liteav.meeting.ui.widget.feature.FeatureSettingFragmentDialog;
@@ -53,13 +58,14 @@ import static com.tencent.liteav.meeting.ui.widget.page.MeetingPageLayoutManager
 public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetingDelegate, View.OnClickListener {
     private static final String TAG = MeetingMainActivity.class.getName();
 
-    public static final String KEY_ROOM_ID       = "room_id";
-    public static final String KEY_USER_ID       = "user_id";
-    public static final String KEY_USER_NAME     = "user_name";
-    public static final String KEY_USER_AVATAR   = "user_avatar";
-    public static final String KEY_OPEN_CAMERA   = "open_camera";
-    public static final String KEY_OPEN_AUDIO    = "open_audio";
+    public static final String KEY_ROOM_ID = "room_id";
+    public static final String KEY_USER_ID = "user_id";
+    public static final String KEY_USER_NAME = "user_name";
+    public static final String KEY_USER_AVATAR = "user_avatar";
+    public static final String KEY_OPEN_CAMERA = "open_camera";
+    public static final String KEY_OPEN_AUDIO = "open_audio";
     public static final String KEY_AUDIO_QUALITY = "audio_quality";
+    public static final String KEY_VIDEO_QUALITY = "video_quality";
     //    public static final  String TYPE_CREATE     = "create";
     //    private static final String KEY_ENTER_TYPE  = "start_type";
     //    private static final String TYPE_ENTER      = "enter";
@@ -69,8 +75,9 @@ public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetin
     private String                    mUserAvatar;
     private boolean                   mOpenCamera;
     private boolean                   mOpenAudio;
-    private int                       mAudioQuality;
-    private String                    mUserName;
+    private int mAudioQuality;
+    private int mVideoQuality;
+    private String mUserName;
     private boolean                   isCreating            = false;
     private boolean                   mIsUserEnterMuteAudio = false; //后续人员进入都进入静音模式
     private boolean                   isFrontCamera         = true;
@@ -83,9 +90,9 @@ public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetin
     private RecyclerView                 mListRv;
     private MeetingVideoView             mViewVideo;
     private FrameLayout                  mContainerFl;
-    private MeetingHeadBarView           mMeetingHeadBarView;
-//    private BeautyPanel                  mBeautyControl;
-    private AppCompatImageButton         mAudioImg;
+    private MeetingHeadBarView mMeetingHeadBarView;
+    //    private BeautyPanel mBeautyControl;
+    private AppCompatImageButton mAudioImg;
     private AppCompatImageButton         mVideoImg;
     private AppCompatImageButton         mBeautyImg;
     private AppCompatImageButton         mMemberImg;
@@ -99,8 +106,9 @@ public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetin
     private TextView                     mStopScreenCaptureTv;
     private View                         mFloatingWindow;
     private List<MemberEntity>           mVisibleVideoStreams;
-    private String                       mShowUserId = "";
-    private Handler                      mHandler    = new Handler();
+    private String mShowUserId = "";
+    private boolean isScreenCapture;
+    private Handler mHandler = new Handler();
 
 
     public static void enterRoom(Context context,
@@ -110,7 +118,8 @@ public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetin
                                  String userAvatar,
                                  boolean openCamera,
                                  boolean openAudio,
-                                 int audioQuality) {
+                                 int audioQuality,
+                                 int videoQuality) {
         Intent starter = new Intent(context, MeetingMainActivity.class);
         starter.putExtra(KEY_ROOM_ID, roomId);
         starter.putExtra(KEY_USER_ID, userId);
@@ -119,6 +128,7 @@ public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetin
         starter.putExtra(KEY_OPEN_CAMERA, openCamera);
         starter.putExtra(KEY_OPEN_AUDIO, openAudio);
         starter.putExtra(KEY_AUDIO_QUALITY, audioQuality);
+        starter.putExtra(KEY_VIDEO_QUALITY, videoQuality);
         context.startActivity(starter);
     }
 
@@ -134,6 +144,7 @@ public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetin
         initData();
         initView();
         startCreateOrEnterMeeting();
+        ProfileManager.getInstance().checkNeedShowSecurityTips(MeetingMainActivity.this);
     }
 
     @Override
@@ -147,12 +158,20 @@ public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetin
 
     @Override
     protected void onDestroy() {
+        hideFloatingWindow();
 //        mBeautyControl.clear();
-        TXTRTCMeeting.getInstance().onActivityDestroy();
         mTRTCMeeting.setDelegate(null);
         mTRTCMeeting.stopScreenCapture();
         mTRTCMeeting.stopCameraPreview();
         super.onDestroy();
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+//        if (null != mBeautyControl && mBeautyControl.getVisibility() != View.GONE && ev.getRawY() < mBeautyControl.getTop()) {
+//            mBeautyControl.setVisibility(View.GONE);
+//        }
+        return super.dispatchTouchEvent(ev);
     }
 
     private void preExitMeeting() {
@@ -182,6 +201,7 @@ public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetin
                     isCreating = true;
                     ToastUtils.showLong("会议创建成功");
                     mMeetingHeadBarView.setTitle(String.valueOf(mRoomId));
+                    changeResolution();
                     return;
                 }
                 isCreating = false;
@@ -194,6 +214,7 @@ public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetin
                             ToastUtils.showShort(msg);
                             finish();
                         }
+                        changeResolution();
                         mMeetingHeadBarView.setTitle(String.valueOf(mRoomId));
                     }
                 });
@@ -221,19 +242,27 @@ public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetin
         }
 //        initBeauty();
         mTRTCMeeting.setSpeaker(isUseSpeaker);
+        mMeetingHeadBarView.setHeadsetImg(isUseSpeaker);
         mTRTCMeeting.enableAudioEvaluation(FeatureConfig.getInstance().isAudioVolumeEvaluation());
     }
 
-//    private void initBeauty() {
-//        BeautyParams beautyParams = new BeautyParams();
-//        mTRTCMeeting.getBeautyManager().setBeautyStyle(beautyParams.mBeautyStyle);
-//        mTRTCMeeting.getBeautyManager().setBeautyLevel(beautyParams.mBeautyLevel);
-//        mTRTCMeeting.getBeautyManager().setWhitenessLevel(beautyParams.mWhiteLevel);
-//        mTRTCMeeting.getBeautyManager().setRuddyLevel(beautyParams.mRuddyLevel);
-//    }
+    private void initBeauty() {
+        BeautyParams beautyParams = new BeautyParams();
+        mTRTCMeeting.getBeautyManager().setBeautyStyle(beautyParams.mBeautyStyle);
+        mTRTCMeeting.getBeautyManager().setBeautyLevel(beautyParams.mBeautyLevel);
+        mTRTCMeeting.getBeautyManager().setWhitenessLevel(beautyParams.mWhiteLevel);
+        mTRTCMeeting.getBeautyManager().setRuddyLevel(beautyParams.mRuddyLevel);
+    }
 
     private void initData() {
         mTRTCMeeting = TRTCMeeting.sharedInstance(this);
+        FaceUnityView faceUnityView = findViewById(R.id.fu_view);
+        boolean isFuEffect = TextUtils.equals(PreferenceUtil.VALUE_ON, PreferenceUtil.getString(this, PreferenceUtil.KEY_FACEUNITY_IS_ON));
+        if (isFuEffect) {
+            faceUnityView.setModuleManager(mTRTCMeeting.createCustomRenderer(this, isFrontCamera));
+        } else {
+            faceUnityView.setVisibility(View.GONE);
+        }
         mStringMemberEntityMap = new HashMap<>();
         mMemberEntityList = new ArrayList<>();
         //从外界获取数据源
@@ -245,11 +274,12 @@ public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetin
         mOpenCamera = starter.getBooleanExtra(KEY_OPEN_CAMERA, true);
         mOpenAudio = starter.getBooleanExtra(KEY_OPEN_AUDIO, true);
         mAudioQuality = starter.getIntExtra(KEY_AUDIO_QUALITY, TRTCCloudDef.TRTC_AUDIO_QUALITY_DEFAULT);
+        mVideoQuality = starter.getIntExtra(KEY_VIDEO_QUALITY, CreateMeetingActivity.VIDEO_QUALITY_FAST);
 
         //创建自己的 MemberEntity
-        MemberEntity            entity           = new MemberEntity();
-        MeetingVideoView        meetingVideoView = new MeetingVideoView(this);
-        meetingVideoView.setSelfView(false);
+        MemberEntity entity = new MemberEntity();
+        MeetingVideoView meetingVideoView = new MeetingVideoView(this);
+        meetingVideoView.setSelfView(true);
         meetingVideoView.setMeetingUserId(mUserId);
         meetingVideoView.setListener(mMeetingViewClick);
         meetingVideoView.setNeedAttach(true);
@@ -263,8 +293,6 @@ public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetin
         entity.setUserName(mUserName);
         entity.setUserAvatar(mUserAvatar);
         addMemberEntity(entity);
-
-        TXTRTCMeeting.getInstance().onActivityCreated(this);
     }
 
     private void initView() {
@@ -337,7 +365,7 @@ public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetin
         mMoreImg = (AppCompatImageButton) findViewById(R.id.img_more);
         mMoreImg.setOnClickListener(this);
 //        mBeautyControl = (BeautyPanel) findViewById(R.id.beauty_panel);
-//        mBeautyControl.setProxy(new MeetingRoomBeautyKit(mTRTCMeeting));
+//        mBeautyControl.setBeautyManager(mTRTCMeeting.getBeautyManager());
         mStubRemoteUserView = (ViewStub) findViewById(R.id.view_stub_remote_user);
         mFeatureSettingFragmentDialog = new FeatureSettingFragmentDialog();
         mFeatureSettingFragmentDialog.setTRTCMeeting(mTRTCMeeting);
@@ -350,6 +378,7 @@ public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetin
             public void onHeadSetClick() {
                 isUseSpeaker = !isUseSpeaker;
                 mTRTCMeeting.setSpeaker(isUseSpeaker);
+                mMeetingHeadBarView.setHeadsetImg(isUseSpeaker);
             }
 
             @Override
@@ -552,6 +581,7 @@ public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetin
         entity.setAudioAvailable(false);
         entity.setShowAudioEvaluation(FeatureConfig.getInstance().isAudioVolumeEvaluation());
         addMemberEntity(entity);
+        changeResolution();
         mMemberListAdapter.notifyItemInserted(insertIndex);
         if (mRemoteUserView != null) {
             mRemoteUserView.notifyDataSetChanged();
@@ -569,6 +599,44 @@ public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetin
         });
     }
 
+    private void changeResolution() {
+        if (isScreenCapture) {
+            return;
+        }
+        if (mVideoQuality == CreateMeetingActivity.VIDEO_QUALITY_HD) {
+            TRTCCloudDef.TRTCNetworkQosParam qosParam = new TRTCCloudDef.TRTCNetworkQosParam();
+            qosParam.preference = TRTCCloudDef.TRTC_VIDEO_QOS_PREFERENCE_CLEAR;
+            mTRTCMeeting.setNetworkQosParam(qosParam);
+            if (mMemberEntityList.size() <= 2) {
+                mTRTCMeeting.setVideoResolution(TRTCCloudDef.TRTC_VIDEO_RESOLUTION_960_540);
+                mTRTCMeeting.setVideoFps(15);
+                mTRTCMeeting.setVideoBitrate(1300);
+            } else if (mMemberEntityList.size() < 4) {
+                mTRTCMeeting.setVideoResolution(TRTCCloudDef.TRTC_VIDEO_RESOLUTION_640_360);
+                mTRTCMeeting.setVideoFps(15);
+                mTRTCMeeting.setVideoBitrate(800);
+            } else {
+                mTRTCMeeting.setVideoResolution(TRTCCloudDef.TRTC_VIDEO_RESOLUTION_480_270);
+                mTRTCMeeting.setVideoFps(15);
+                mTRTCMeeting.setVideoBitrate(400);
+            }
+        } else {
+            TRTCCloudDef.TRTCNetworkQosParam qosParam = new TRTCCloudDef.TRTCNetworkQosParam();
+            qosParam.preference = TRTCCloudDef.TRTC_VIDEO_QOS_PREFERENCE_SMOOTH;
+            mTRTCMeeting.setNetworkQosParam(qosParam);
+            if (mMemberEntityList.size() < 5) {
+                // 包括自己，一共四个人，选择360p分辨率
+                mTRTCMeeting.setVideoResolution(TRTCCloudDef.TRTC_VIDEO_RESOLUTION_640_360);
+                mTRTCMeeting.setVideoFps(15);
+                mTRTCMeeting.setVideoBitrate(700);
+            } else {
+                mTRTCMeeting.setVideoResolution(TRTCCloudDef.TRTC_VIDEO_RESOLUTION_480_270);
+                mTRTCMeeting.setVideoFps(15);
+                mTRTCMeeting.setVideoBitrate(350);
+            }
+        }
+    }
+
     @Override
     public void onUserLeaveRoom(String userId) {
         if (mShowUserId.equals(userId)) {
@@ -577,6 +645,7 @@ public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetin
             mContainerFl.setVisibility(View.GONE);
         }
         int index = removeMemberEntity(userId);
+        changeResolution();
         if (index >= 0) {
             mMemberListAdapter.notifyItemRemoved(index);
         }
@@ -620,6 +689,27 @@ public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetin
     @Override
     public void onRecvRoomCustomMsg(String cmd, String message, TRTCMeetingDef.UserInfo userInfo) {
 
+    }
+
+    @Override
+    public void onScreenCaptureStarted() {
+        isScreenCapture = true;
+    }
+
+    @Override
+    public void onScreenCapturePaused() {
+
+    }
+
+    @Override
+    public void onScreenCaptureResumed() {
+
+    }
+
+    @Override
+    public void onScreenCaptureStopped(int reason) {
+        isScreenCapture = false;
+        changeResolution();
     }
 
     @Override
@@ -704,7 +794,7 @@ public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetin
         encParams.videoResolutionMode = TRTCCloudDef.TRTC_VIDEO_RESOLUTION_MODE_PORTRAIT;
         encParams.videoFps = 10;
         encParams.enableAdjustRes = false;
-        encParams.videoBitrate = 1200;
+        encParams.videoBitrate = 1500;
 
         TRTCCloudDef.TRTCScreenShareParams params = new TRTCCloudDef.TRTCScreenShareParams();
         mTRTCMeeting.stopCameraPreview();

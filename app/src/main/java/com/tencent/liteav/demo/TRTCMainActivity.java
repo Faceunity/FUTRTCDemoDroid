@@ -26,13 +26,13 @@ import android.widget.TextView;
 
 import com.blankj.utilcode.constant.PermissionConstants;
 import com.blankj.utilcode.util.PermissionUtils;
-import com.tencent.liteav.demo.trtcvoiceroom.CreateVoiceRoomActivity;
 import com.tencent.liteav.liveroom.ui.liveroomlist.LiveRoomListActivity;
-import com.tencent.liteav.login.LoginActivity;
-import com.tencent.liteav.login.ProfileManager;
+import com.tencent.liteav.login.model.ProfileManager;
+import com.tencent.liteav.login.ui.LoginActivity;
 import com.tencent.liteav.meeting.ui.CreateMeetingActivity;
-import com.tencent.liteav.trtcaudiocalldemo.ui.TRTCAudioCallHistoryActivity;
-import com.tencent.liteav.trtcvideocalldemo.ui.TRTCVideoCallHistoryActivity;
+import com.tencent.liteav.trtccalling.model.TRTCCalling;
+import com.tencent.liteav.trtccalling.ui.TRTCCallingEntranceActivity;
+import com.tencent.liteav.trtcvoiceroom.ui.list.VoiceRoomListActivity;
 import com.tencent.rtmp.TXLiveBase;
 
 import java.io.File;
@@ -49,13 +49,13 @@ public class TRTCMainActivity extends Activity {
 
     private static final String TAG = TRTCMainActivity.class.getName();
 
-    private TextView mMainTitle;
-    private TextView mTvVersion;
-    private List<TRTCItemEntity> mTRTCItemEntityList;
-    private RecyclerView mRvList;
+    private TextView                mMainTitle;
+    private TextView                mTvVersion;
+    private List<TRTCItemEntity>    mTRTCItemEntityList;
+    private RecyclerView            mRvList;
     private TRTCRecyclerViewAdapter mTRTCRecyclerViewAdapter;
-    private ImageView mLogoutImg;
-    private AlertDialog mAlertDialog;
+    private ImageView               mLogoutImg;
+    private AlertDialog             mAlertDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,7 +67,7 @@ public class TRTCMainActivity extends Activity {
         }
         setContentView(R.layout.activity_trtc_main);
         mTvVersion = (TextView) findViewById(R.id.main_tv_version);
-        mTvVersion.setText("腾讯云 TRTC v" + TXLiveBase.getSDKVersionStr() + "(7.3.100)");
+        mTvVersion.setText("腾讯云 TRTC v" + TXLiveBase.getSDKVersionStr() + "(7.9.607)");
         mMainTitle = (TextView) findViewById(R.id.main_title);
         mMainTitle.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
@@ -94,7 +94,7 @@ public class TRTCMainActivity extends Activity {
             @Override
             public void onItemClick(int position) {
                 TRTCItemEntity entity = mTRTCItemEntityList.get(position);
-                Intent intent = new Intent(TRTCMainActivity.this, entity.mTargetClass);
+                Intent         intent = new Intent(TRTCMainActivity.this, entity.mTargetClass);
                 intent.putExtra("TITLE", entity.mTitle);
                 intent.putExtra("TYPE", entity.mType);
                 TRTCMainActivity.this.startActivity(intent);
@@ -113,9 +113,32 @@ public class TRTCMainActivity extends Activity {
         initPermission();
     }
 
-    private void stopService() {
-        Intent intent = new Intent(this, CallService.class);
-        stopService(intent);
+    @Override
+    protected void onResume() {
+        super.onResume();
+        CallService.start(this);
+    }
+
+    @Override
+    public void onBackPressed() {
+        //退出登录
+        AlertDialog alertDialog = new AlertDialog.Builder(this, R.style.common_alert_dialog)
+                .setMessage("确定要退出APP吗？")
+                .setPositiveButton("确定", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        CallService.stop(TRTCMainActivity.this);
+                        finish();
+                    }
+                })
+                .setNegativeButton("取消", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                })
+                .create();
+        alertDialog.show();
     }
 
     @Override
@@ -134,7 +157,7 @@ public class TRTCMainActivity extends Activity {
                             ProfileManager.getInstance().logout(new ProfileManager.ActionCallback() {
                                 @Override
                                 public void onSuccess() {
-                                    stopService();
+                                    CallService.stop(TRTCMainActivity.this);
                                     // 退出登录
                                     startLoginActivity();
                                 }
@@ -167,20 +190,20 @@ public class TRTCMainActivity extends Activity {
     private List<TRTCItemEntity> createTRTCItems() {
         List<TRTCItemEntity> list = new ArrayList<>();
         list.add(new TRTCItemEntity("多人视频会议", "语音自动降噪、视频画质超高清，适用于在线会议、远程培训、小班课等场景。", R.drawable.multi_meeting, 0, CreateMeetingActivity.class));
-        list.add(new TRTCItemEntity("语音聊天室", "内含变声、音效、混响、背景音乐等声音玩法，适用于闲聊房、K歌房、开黑房等语聊场景。", R.drawable.voice_chatroom, 0, CreateVoiceRoomActivity.class));
+        list.add(new TRTCItemEntity("语音聊天室", "内含变声、音效、混响、背景音乐等声音玩法，适用于闲聊房、K歌房、开黑房等语聊场景。", R.drawable.voice_chatroom, 0, VoiceRoomListActivity.class));
         list.add(new TRTCItemEntity("视频互动直播", "低延时、十万人高并发的大型互动直播解决方案，观众时延低至800ms，上下麦切换免等待。", R.drawable.live_stream, 0, LiveRoomListActivity.class));
-        list.add(new TRTCItemEntity("语音通话", "48kHz高音质，60%丢包可正常语音通话，领先行业的3A处理，杜绝回声和啸叫。", R.drawable.voice_call, 0, TRTCAudioCallHistoryActivity.class));
-        list.add(new TRTCItemEntity("视频通话", "支持720P/1080P高清画质，50%丢包率可正常视频通话，自带美颜、挂件、抠图等AI特效。", R.drawable.video_call, 0, TRTCVideoCallHistoryActivity.class));
+        list.add(new TRTCItemEntity("语音通话", "48kHz高音质，60%丢包可正常语音通话，领先行业的3A处理，杜绝回声和啸叫。", R.drawable.voice_call, TRTCCalling.TYPE_AUDIO_CALL, TRTCCallingEntranceActivity.class));
+        list.add(new TRTCItemEntity("视频通话", "支持720P/1080P高清画质，50%丢包率可正常视频通话，自带美颜、挂件、抠图等AI特效。", R.drawable.video_call, TRTCCalling.TYPE_VIDEO_CALL, TRTCCallingEntranceActivity.class));
         return list;
     }
 
     private File getLogFile() {
-        String path = getExternalFilesDir(null).getAbsolutePath() + "/log/tencent/liteav";
-        List<String> logs = new ArrayList<>();
-        File directory = new File(path);
+        String       path      = getExternalFilesDir(null).getAbsolutePath() + "/log/tencent/liteav";
+        List<String> logs      = new ArrayList<>();
+        File         directory = new File(path);
         if (directory != null && directory.exists() && directory.isDirectory()) {
             long lastModify = 0;
-            File files[] = directory.listFiles();
+            File files[]    = directory.listFiles();
             if (files != null && files.length > 0) {
                 for (File file : files) {
                     if (file.getName().endsWith("xlog")) {
@@ -203,7 +226,7 @@ public class TRTCMainActivity extends Activity {
     private File zip(List<String> files, String zipFileName) {
         File zipFile = new File(zipFileName);
         zipFile.deleteOnExit();
-        InputStream is = null;
+        InputStream     is  = null;
         ZipOutputStream zos = null;
         try {
             zos = new ZipOutputStream(new FileOutputStream(zipFile));
@@ -211,12 +234,11 @@ public class TRTCMainActivity extends Activity {
             for (String path : files) {
                 File file = new File(path);
                 try {
-                    if (file.length() == 0 || file.length() > 8 * 1024 * 1024)
-                        continue;
+                    if (file.length() == 0 || file.length() > 8 * 1024 * 1024) continue;
                     is = new FileInputStream(file);
                     zos.putNextEntry(new ZipEntry(file.getName()));
                     byte[] buffer = new byte[8 * 1024];
-                    int length = 0;
+                    int    length = 0;
                     while ((length = is.read(buffer)) != -1) {
                         zos.write(buffer, 0, length);
                     }
@@ -252,9 +274,9 @@ public class TRTCMainActivity extends Activity {
         tv.setMovementMethod(LinkMovementMethod.getInstance());
         CharSequence text = tv.getText();
         if (text instanceof Spannable) {
-            int end = text.length();
+            int       end       = text.length();
             Spannable spannable = (Spannable) tv.getText();
-            URLSpan[] urlSpans = spannable.getSpans(0, end, URLSpan.class);
+            URLSpan[] urlSpans  = spannable.getSpans(0, end, URLSpan.class);
             if (urlSpans.length == 0) {
                 return;
             }
@@ -275,7 +297,7 @@ public class TRTCMainActivity extends Activity {
     public class CustomUrlSpan extends ClickableSpan {
 
         private Context context;
-        private String url;
+        private String  url;
 
         public CustomUrlSpan(Context context, String url) {
             this.context = context;
@@ -294,9 +316,9 @@ public class TRTCMainActivity extends Activity {
     public class TRTCItemEntity {
         public String mTitle;
         public String mContent;
-        public int mIconId;
-        public Class mTargetClass;
-        public int mType;
+        public int    mIconId;
+        public Class  mTargetClass;
+        public int    mType;
 
         public TRTCItemEntity(String title, String content, int iconId, int type, Class targetClass) {
             mTitle = title;
@@ -310,9 +332,9 @@ public class TRTCMainActivity extends Activity {
     public class TRTCRecyclerViewAdapter extends
             RecyclerView.Adapter<TRTCRecyclerViewAdapter.ViewHolder> {
 
-        private Context context;
+        private Context              context;
         private List<TRTCItemEntity> list;
-        private OnItemClickListener onItemClickListener;
+        private OnItemClickListener  onItemClickListener;
 
         public TRTCRecyclerViewAdapter(Context context, List<TRTCItemEntity> list,
                                        OnItemClickListener onItemClickListener) {
@@ -322,8 +344,8 @@ public class TRTCMainActivity extends Activity {
         }
 
         public class ViewHolder extends RecyclerView.ViewHolder {
-            private ImageView mItemImg;
-            private TextView mTitleTv;
+            private ImageView        mItemImg;
+            private TextView         mTitleTv;
             private ConstraintLayout mClItem;
 
             public ViewHolder(View itemView) {

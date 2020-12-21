@@ -1,26 +1,12 @@
 package com.tencent.liteav.meeting.model.impl.trtc;
 
-import android.app.Activity;
 import android.content.Context;
-import android.hardware.Camera;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
-import android.util.Log;
-import android.view.MotionEvent;
-import android.view.View;
 
-import com.faceunity.customdata.CameraRenderer;
-import com.faceunity.customdata.GLTextureView;
-import com.faceunity.customdata.RendererStatusListener;
-import com.faceunity.customdata.gles.core.GlUtil;
-import com.faceunity.customdata.utils.CameraUtils;
-import com.faceunity.customdata.utils.PreferenceUtil;
-import com.faceunity.nama.FURenderer;
-import com.faceunity.nama.ui.FaceUnityView;
-import com.tencent.liteav.demo.trtc.R;
+import com.tencent.liteav.beauty.TXBeautyManager;
 import com.tencent.liteav.meeting.model.impl.base.MeetingConfig;
 import com.tencent.liteav.meeting.model.impl.base.TRTCLogger;
 import com.tencent.liteav.meeting.model.impl.base.TXCallback;
@@ -41,7 +27,7 @@ public class TXTRTCMeeting extends TRTCCloudListener {
     private static TXTRTCMeeting sInstance;
 
     private TRTCCloud mTRTCCloud;
-    //    private TXBeautyManager         mTXBeautyManager;
+    private TXBeautyManager mTXBeautyManager;
     // 一开始进房的角色
     private TXCallback mEnterRoomCallback;
     private TXCallback mExitRoomCallback;
@@ -58,9 +44,6 @@ public class TXTRTCMeeting extends TRTCCloudListener {
     private String mStreamId;
     private MeetingConfig mMeetingConfig;
 
-    private CameraRenderer mCameraRenderer;
-    private GLTextureView mGlTextureView;
-    private boolean mIsFuEffect;
 
     public static synchronized TXTRTCMeeting getInstance() {
         if (sInstance == null) {
@@ -72,43 +55,11 @@ public class TXTRTCMeeting extends TRTCCloudListener {
     public void init(Context context) {
         TRTCLogger.i(TAG, "init context:" + context);
         mTRTCCloud = TRTCCloud.sharedInstance(context);
-//        mTXBeautyManager = mTRTCCloud.getBeautyManager();
+        mTXBeautyManager = mTRTCCloud.getBeautyManager();
         mPlayCallbackMap = new HashMap<>();
         mPlayTimeoutRunnable = new HashMap<>();
         mMainHandler = new Handler(Looper.getMainLooper());
         mMeetingConfig = new MeetingConfig();
-    }
-
-    public void onActivityCreated(Activity activity) {
-        boolean isFuEffect = TextUtils.equals(PreferenceUtil.VALUE_ON, PreferenceUtil.getString(activity, PreferenceUtil.KEY_FACEUNITY_IS_ON));
-        mIsFuEffect = isFuEffect;
-        if (isFuEffect) {
-            FURenderer fuRenderer = new FURenderer.Builder(activity)
-                    .setInputTextureType(FURenderer.INPUT_EXTERNAL_OES_TEXTURE)
-                    .setCameraType(Camera.CameraInfo.CAMERA_FACING_FRONT)
-                    .setInputImageOrientation(CameraUtils.getCameraOrientation(Camera.CameraInfo.CAMERA_FACING_FRONT))
-                    .build();
-            FaceUnityView faceUnityView = (FaceUnityView) activity.findViewById(R.id.fu_beauty_view);
-            faceUnityView.setModuleManager(fuRenderer);
-            mTRTCCloud.enableCustomVideoCapture(true);
-            GLTextureView glTextureView = new GLTextureView(activity);
-            mCameraRenderer = new CameraRenderer(activity, glTextureView, new RendererStatusListener(activity, fuRenderer));
-            int supportGlVersion;
-            if ("Meizu".equals(Build.MANUFACTURER) && "PRO 7 Plus".equals(Build.MODEL)) {
-                supportGlVersion = 2;
-            } else {
-                supportGlVersion = GlUtil.getSupportGLVersion(activity);
-            }
-            glTextureView.setEGLContextClientVersion(supportGlVersion);
-            glTextureView.setRenderer(mCameraRenderer);
-            glTextureView.setRenderMode(GLTextureView.RENDERMODE_WHEN_DIRTY);
-            mGlTextureView = glTextureView;
-        } else {
-            activity.findViewById(R.id.fu_beauty_view).setVisibility(View.GONE);
-        }
-    }
-
-    public void onActivityDestroy() {
     }
 
     public void setDelegate(ITXTRTCMeetingDelegate delegate) {
@@ -162,7 +113,7 @@ public class TXTRTCMeeting extends TRTCCloudListener {
             return;
         }
         mTRTCCloud.setListener(this);
-        mTRTCCloud.enterRoom(mTRTCParams, TRTCCloudDef.TRTC_APP_SCENE_LIVE);
+        mTRTCCloud.enterRoom(mTRTCParams, TRTCCloudDef.TRTC_APP_SCENE_VIDEOCALL);
     }
 
 
@@ -171,6 +122,7 @@ public class TXTRTCMeeting extends TRTCCloudListener {
         param.videoResolution = mMeetingConfig.resolution;
         param.videoBitrate = mMeetingConfig.bitrate;
         param.videoFps = mMeetingConfig.fps;
+        param.enableAdjustRes = true;
         param.videoResolutionMode = TRTCCloudDef.TRTC_VIDEO_RESOLUTION_MODE_PORTRAIT;
         mTRTCCloud.setVideoEncoderParam(param);
     }
@@ -202,11 +154,7 @@ public class TXTRTCMeeting extends TRTCCloudListener {
 
     public void startCameraPreview(boolean isFront, TXCloudVideoView view, TXCallback callback) {
         TRTCLogger.i(TAG, "start camera preview.");
-        if (mIsFuEffect) {
-            startCustomLocalPreview(true, view);
-        } else {
-            mTRTCCloud.startLocalPreview(isFront, view);
-        }
+        mTRTCCloud.startLocalPreview(isFront, view);
         if (callback != null) {
             callback.onCallback(0, "success");
         }
@@ -214,47 +162,11 @@ public class TXTRTCMeeting extends TRTCCloudListener {
 
     public void stopCameraPreview() {
         TRTCLogger.i(TAG, "stop camera preview.");
-        if (mIsFuEffect) {
-            startCustomLocalPreview(false, null);
-        } else {
-            mTRTCCloud.stopLocalPreview();
-        }
-    }
-
-    /**
-     * 外部自采集和渲染
-     *
-     * @param enable 打开/关闭
-     */
-    private void startCustomLocalPreview(boolean enable, TXCloudVideoView localVideoView) {
-        Log.d(TAG, "startCustomLocalPreview() called with: enable = [" + enable + "], localVideoView = [" + localVideoView + "]");
-        if (enable) {
-            localVideoView.setOnTouchListener(new View.OnTouchListener() {
-                @Override
-                public boolean onTouch(View v, MotionEvent event) {
-                    // skip double click
-                    return true;
-                }
-            });
-            localVideoView.addVideoView(mGlTextureView);
-            if (mCameraRenderer != null) {
-                mCameraRenderer.onResume();
-            }
-        } else {
-            if (mCameraRenderer != null) {
-                mCameraRenderer.onPause();
-            }
-        }
+        mTRTCCloud.stopLocalPreview();
     }
 
     public void switchCamera() {
-        if (mIsFuEffect) {
-            if (mCameraRenderer != null) {
-                mCameraRenderer.switchCamera();
-            }
-        } else {
-            mTRTCCloud.switchCamera();
-        }
+        mTRTCCloud.switchCamera();
     }
 
     public void setMirror(boolean isMirror) {
@@ -603,9 +515,9 @@ public class TXTRTCMeeting extends TRTCCloudListener {
         TRTCLogger.i(TAG, "on set mix transcoding, code:" + i + " msg:" + s);
     }
 
-//    public TXBeautyManager getTXBeautyManager() {
-//        return mTXBeautyManager;
-//    }
+    public TXBeautyManager getTXBeautyManager() {
+        return mTXBeautyManager;
+    }
 
     public void setRemoteViewFillMode(String userId, int fillMode) {
         mTRTCCloud.setRemoteViewFillMode(userId, fillMode);
@@ -646,6 +558,10 @@ public class TXTRTCMeeting extends TRTCCloudListener {
         mTRTCCloud.setLocalViewMirror(type);
     }
 
+    public void setNetworkQosParam(TRTCCloudDef.TRTCNetworkQosParam qosParam) {
+        mTRTCCloud.setNetworkQosParam(qosParam);
+    }
+
     public void setAudioQuality(int quality) {
         mTRTCCloud.setAudioQuality(quality);
     }
@@ -684,5 +600,33 @@ public class TXTRTCMeeting extends TRTCCloudListener {
 
     public String getStreamId() {
         return mStreamId;
+    }
+
+    @Override
+    public void onScreenCaptureStarted() {
+        if (mDelegate != null) {
+            mDelegate.onScreenCaptureStarted();
+        }
+    }
+
+    @Override
+    public void onScreenCapturePaused() {
+        if (mDelegate != null) {
+            mDelegate.onScreenCapturePaused();
+        }
+    }
+
+    @Override
+    public void onScreenCaptureResumed() {
+        if (mDelegate != null) {
+            mDelegate.onScreenCaptureResumed();
+        }
+    }
+
+    @Override
+    public void onScreenCaptureStopped(int i) {
+        if (mDelegate != null) {
+            mDelegate.onScreenCaptureStopped(i);
+        }
     }
 }

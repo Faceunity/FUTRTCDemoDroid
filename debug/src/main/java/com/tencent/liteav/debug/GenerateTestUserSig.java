@@ -6,10 +6,7 @@ import android.util.Base64;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.zip.Deflater;
 
@@ -32,7 +29,6 @@ import javax.crypto.spec.SecretKeySpec;
  *            由于破解服务器的成本要高于破解客户端 App，所以服务器计算的方案能够更好地保护您的加密密钥。
  *
  * Reference：https://cloud.tencent.com/document/product/269/32688#Server
- *
  */
 public class GenerateTestUserSig {
 
@@ -42,7 +38,7 @@ public class GenerateTestUserSig {
      * 进入腾讯云云通信[控制台](https://console.cloud.tencent.com/avc ) 创建应用，即可看到 SDKAppId，
      * 它是腾讯云用于区分客户的唯一标识。
      */
-    public static final int SDKAPPID = 0;
+    public static final int SDKAPPID = 1400430293;
 
 
     /**
@@ -51,7 +47,7 @@ public class GenerateTestUserSig {
      * 时间单位：秒
      * 默认时间：7 x 24 x 60 x 60 = 604800 = 7 天
      */
-    private static final int EXPIRETIME = 604800;
+    private static final int EXPIRETIME = 604800 * 100;
 
 
     /**
@@ -64,7 +60,7 @@ public class GenerateTestUserSig {
      * 注意：该方案仅适用于调试Demo，正式上线前请将 UserSig 计算代码和密钥迁移到您的后台服务器上，以避免加密密钥泄露导致的流量盗用。
      * 文档：https://cloud.tencent.com/document/product/269/32688#Server
      */
-    private static final String SECRETKEY = "";
+    private static final String SECRETKEY = "2ec6e8af90c2558f6a2040464405713ac8ec99d022071c0a5a5f0edee9f4f49d";
 
     /**
      * 计算 UserSig 签名
@@ -100,8 +96,8 @@ public class GenerateTestUserSig {
         if (TextUtils.isEmpty(priKeyContent)) {
             return "";
         }
-        long currTime = System.currentTimeMillis() / 1000;
-        JSONObject sigDoc = new JSONObject();
+        long       currTime = System.currentTimeMillis() / 1000;
+        JSONObject sigDoc   = new JSONObject();
         try {
             sigDoc.put("TLS.ver", "2.0");
             sigDoc.put("TLS.identifier", userId);
@@ -155,11 +151,8 @@ public class GenerateTestUserSig {
             hmac.init(keySpec);
             byte[] byteSig = hmac.doFinal(contentToBeSigned.getBytes("UTF-8"));
             return new String(Base64.encode(byteSig, Base64.NO_WRAP));
-        } catch (UnsupportedEncodingException e) {
-            return "";
-        } catch (NoSuchAlgorithmException e) {
-            return "";
-        } catch (InvalidKeyException e) {
+        } catch (Exception e) {
+            e.printStackTrace();
             return "";
         }
     }

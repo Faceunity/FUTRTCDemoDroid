@@ -1,22 +1,16 @@
 package com.tencent.liteav.liveroom.model.impl.av.trtc;
 
-import android.app.Activity;
 import android.content.Context;
 
 import com.tencent.liteav.audio.TXAudioEffectManager;
+import com.tencent.liteav.beauty.TXBeautyManager;
 import com.tencent.liteav.liveroom.model.impl.base.TXCallback;
 import com.tencent.rtmp.ui.TXCloudVideoView;
 
 import java.util.List;
 
-//import com.tencent.liteav.beauty.TXBeautyManager;
-
 public interface ITRTCTXLiveRoom {
     void init(Context context);
-
-    void onActivityCreate(Activity activity);
-
-    void onActivityDestroy();
 
     void setDelegate(ITXTRTCLiveRoomDelegate deleagte);
 
@@ -58,7 +52,7 @@ public interface ITRTCTXLiveRoom {
 
     void setMixConfig(List<TXTRTCMixUser> list, boolean isPK);
 
-//    TXBeautyManager getTXBeautyManager();
+    TXBeautyManager getTXBeautyManager();
 
     TXAudioEffectManager getAudioEffectManager();
 

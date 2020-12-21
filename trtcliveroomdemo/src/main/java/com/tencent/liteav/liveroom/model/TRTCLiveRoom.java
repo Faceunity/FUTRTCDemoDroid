@@ -1,9 +1,12 @@
 package com.tencent.liteav.liveroom.model;
 
+import android.app.Activity;
 import android.content.Context;
 import android.os.Handler;
 
+import com.faceunity.nama.FURenderer;
 import com.tencent.liteav.audio.TXAudioEffectManager;
+import com.tencent.liteav.beauty.TXBeautyManager;
 import com.tencent.liteav.liveroom.model.impl.TRTCLiveRoomImpl;
 import com.tencent.rtmp.ui.TXCloudVideoView;
 
@@ -30,6 +33,15 @@ public abstract class TRTCLiveRoom {
      */
     public static synchronized TRTCLiveRoom sharedInstance(Context context) {
         return TRTCLiveRoomImpl.sharedInstance(context);
+    }
+
+    /**
+     * 初始化自定义采集和渲染的对象
+     *
+     * @return
+     */
+    public FURenderer createCustomRenderer(Activity activity, boolean isFrontCamera) {
+        return null;
     }
 
     /**
@@ -369,10 +381,11 @@ public abstract class TRTCLiveRoom {
     //                 美颜滤镜相关接口
     //
     //////////////////////////////////////////////////////////
+
     /**
      * 美颜控制相关
      */
-//    public abstract TXBeautyManager getBeautyManager();
+    public abstract TXBeautyManager getBeautyManager();
 
     //////////////////////////////////////////////////////////
     //

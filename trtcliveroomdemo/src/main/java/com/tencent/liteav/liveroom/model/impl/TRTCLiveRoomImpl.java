@@ -1,11 +1,21 @@
 package com.tencent.liteav.liveroom.model.impl;
 
+import android.app.Activity;
 import android.content.Context;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.opengl.EGL14;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
+import android.util.Log;
 
+import com.faceunity.nama.FURenderer;
+import com.faceunity.nama.utils.CameraUtils;
 import com.tencent.liteav.audio.TXAudioEffectManager;
+import com.tencent.liteav.beauty.TXBeautyManager;
 import com.tencent.liteav.liveroom.model.TRTCLiveRoom;
 import com.tencent.liteav.liveroom.model.TRTCLiveRoomCallback;
 import com.tencent.liteav.liveroom.model.TRTCLiveRoomDef;
@@ -24,7 +34,9 @@ import com.tencent.liteav.liveroom.model.impl.room.ITXRoomServiceDelegate;
 import com.tencent.liteav.liveroom.model.impl.room.impl.TXRoomService;
 import com.tencent.liteav.trtc.impl.TRTCCloudImpl;
 import com.tencent.rtmp.ui.TXCloudVideoView;
+import com.tencent.trtc.TRTCCloud;
 import com.tencent.trtc.TRTCCloudDef;
+import com.tencent.trtc.TRTCCloudListener;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -38,16 +50,17 @@ import java.util.Set;
 import static com.tencent.liteav.liveroom.model.TRTCLiveRoomDef.ROOM_STATUS_NONE;
 import static com.tencent.liteav.liveroom.model.TRTCLiveRoomDef.ROOM_STATUS_PK;
 
-public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDelegate, ITXRoomServiceDelegate {
+public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDelegate, ITXRoomServiceDelegate,
+        SensorEventListener {
     private static final int CODE_SUCCESS = 0;
-    private static final int CODE_ERROR   = -1;
+    private static final int CODE_ERROR = -1;
     public static final int PK_ANCHOR_NUMS = 2;
 
     private static final class Role {
-        static final int UNKNOWN       = 0;
-        static final int TRTC_ANCHOR   = 1;
+        static final int UNKNOWN = 0;
+        static final int TRTC_ANCHOR = 1;
         static final int TRTC_AUDIENCE = 2;
-        static final int CDN_AUDIENCE  = 3;
+        static final int CDN_AUDIENCE = 3;
     }
 
     private static final class TXCallbackHolder implements TXCallback {
@@ -123,6 +136,13 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
     // 防止内存泄露
     private TXCallbackHolder mRequestPKHolder;
 
+    private TRTCCloud mTRTCCloud;
+    private boolean mIsFuEffect;
+    private SensorManager mSensorManager;
+    private FURenderer mFURenderer;
+    private Context mContext;
+    private boolean mIsUseFrontCamera = true;
+
     public static synchronized TRTCLiveRoom sharedInstance(Context context) {
         if (sInstance == null) {
             sInstance = new TRTCLiveRoomImpl(context.getApplicationContext());
@@ -138,6 +158,8 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
     }
 
     private TRTCLiveRoomImpl(Context context) {
+        mContext = context.getApplicationContext();
+        mTRTCCloud = TRTCCloud.sharedInstance(context);
         mCurrentRole = Role.CDN_AUDIENCE;
         mOriginalRole = Role.CDN_AUDIENCE;
         mTargetRole = Role.CDN_AUDIENCE;
@@ -834,6 +856,64 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
      */
     @Override
     public void startCameraPreview(final boolean isFront, final TXCloudVideoView view, final TRTCLiveRoomCallback.ActionCallback callback) {
+        Log.d(TAG, "startCameraPreview() called with: isFront = [" + isFront + "], view = [" + view + "], callback = [" + callback + "]");
+        mIsUseFrontCamera = isFront;
+        if (mIsFuEffect) {
+            boolean sendTexture = true;
+            if (sendTexture) {
+                mTRTCCloud.setLocalVideoProcessListener(TRTCCloudDef.TRTC_VIDEO_PIXEL_FORMAT_Texture_2D,
+                        TRTCCloudDef.TRTC_VIDEO_BUFFER_TYPE_TEXTURE, new TRTCCloudListener.TRTCVideoFrameListener() {
+                            @Override
+                            public void onGLContextCreated() {
+                                Log.i(TAG, "tex onGLContextCreated: " + EGL14.eglGetCurrentContext());
+                                mFURenderer.onSurfaceCreated();
+                                mFURenderer.setUseTexAsync(true);
+                            }
+
+                            @Override
+                            public int onProcessVideoFrame(TRTCCloudDef.TRTCVideoFrame src, TRTCCloudDef.TRTCVideoFrame dest) {
+//                            Log.v(TAG, String.format("process video frame, w %d, h %d, tex %d, rotation %d, pixel format %d",
+//                                    src.width, src.height, src.texture.textureId, src.rotation, src.pixelFormat));
+                                dest.texture.textureId = mFURenderer.onDrawFrameSingleInput(src.texture.textureId, src.width, src.height);
+                                return 0;
+                            }
+
+                            @Override
+                            public void onGLContextDestory() {
+                                Log.i(TAG, "tex onGLContextDestory: " + EGL14.eglGetCurrentContext());
+                                mFURenderer.onSurfaceDestroyed();
+                            }
+                        });
+            } else {
+                mTRTCCloud.setLocalVideoProcessListener(TRTCCloudDef.TRTC_VIDEO_PIXEL_FORMAT_NV21,
+                        TRTCCloudDef.TRTC_VIDEO_BUFFER_TYPE_BYTE_ARRAY, new TRTCCloudListener.TRTCVideoFrameListener() {
+
+                            @Override
+                            public void onGLContextCreated() {
+                                Log.i(TAG, "nv21 onGLContextCreated: " + EGL14.eglGetCurrentContext());
+                                mFURenderer.onSurfaceCreated();
+                            }
+
+                            @Override
+                            public int onProcessVideoFrame(TRTCCloudDef.TRTCVideoFrame src, TRTCCloudDef.TRTCVideoFrame dest) {
+//                                Log.v(TAG, String.format("process video frame, w %d, h %d, src length %d, rotation %d, buffer type %d, dest length %d",
+//                                        src.width, src.height, src.data.length, src.rotation, src.bufferType, dest.data.length));
+                                mFURenderer.onDrawFrameSingleInput(src.data, src.width, src.height,
+                                        FURenderer.INPUT_FORMAT_NV21_BUFFER, dest.data, src.width, src.height);
+                                return 0;
+                            }
+
+                            @Override
+                            public void onGLContextDestory() {
+                                Log.i(TAG, "nv21 onGLContextDestory: " + EGL14.eglGetCurrentContext());
+                                mFURenderer.onSurfaceDestroyed();
+                            }
+                        });
+            }
+            mSensorManager = (SensorManager) mContext.getSystemService(Context.SENSOR_SERVICE);
+            Sensor sensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+            mSensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL);
+        }
         runOnMainThread(new Runnable() {
             @Override
             public void run() {
@@ -858,6 +938,10 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
 
     @Override
     public void stopCameraPreview() {
+        Log.d(TAG, "stopCameraPreview() called");
+        if (mSensorManager != null) {
+            mSensorManager.unregisterListener(this);
+        }
         runOnMainThread(new Runnable() {
             @Override
             public void run() {
@@ -1473,7 +1557,15 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
             @Override
             public void run() {
                 TRTCLogger.i(TAG, "switch camera.");
+                mIsUseFrontCamera = !mIsUseFrontCamera;
                 TXTRTCLiveRoom.getInstance().switchCamera();
+                if (mIsFuEffect) {
+                    int cameraId = mIsUseFrontCamera ? FURenderer.CAMERA_FACING_FRONT : FURenderer.CAMERA_FACING_BACK;
+                    mFURenderer.onCameraChanged(cameraId, CameraUtils.getCameraOrientation(cameraId));
+                    if (mFURenderer.getMakeupModule() != null) {
+                        mFURenderer.getMakeupModule().setIsMakeupFlipPoints(mIsUseFrontCamera ? 0 : 1);
+                    }
+                }
             }
         });
     }
@@ -1646,10 +1738,32 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
         });
     }
 
-//    @Override
-//    public TXBeautyManager getBeautyManager() {
-//        return TXTRTCLiveRoom.getInstance().getTXBeautyManager();
-//    }
+    @Override
+    public TXBeautyManager getBeautyManager() {
+        return TXTRTCLiveRoom.getInstance().getTXBeautyManager();
+    }
+
+    @Override
+    public FURenderer createCustomRenderer(Activity activity, boolean isFrontCamera) {
+        super.createCustomRenderer(activity, isFrontCamera);
+        mIsFuEffect = true;
+        mIsUseFrontCamera = isFrontCamera;
+        int cameraFacing = mIsUseFrontCamera ? FURenderer.CAMERA_FACING_FRONT : FURenderer.CAMERA_FACING_BACK;
+        FURenderer fuRenderer = new FURenderer.Builder(activity)
+                .setInputTextureType(FURenderer.INPUT_TEXTURE_2D)
+                .setCameraFacing(cameraFacing)
+                .setInputImageOrientation(CameraUtils.getCameraOrientation(cameraFacing))
+                .setRunBenchmark(true)
+                .setOnDebugListener(new FURenderer.OnDebugListener() {
+                    @Override
+                    public void onFpsChanged(double fps, double callTime) {
+                        Log.d(TAG, "onFpsChanged " + String.format("fps: %.2f, callTime: %.2f", fps, callTime));
+                    }
+                })
+                .build();
+        mFURenderer = fuRenderer;
+        return fuRenderer;
+    }
 
     private void enterTRTCRoomInner(final String roomId, final String userId, final String userSign, final int role, final TRTCLiveRoomCallback.ActionCallback callback) {
         // 进入 TRTC 房间
@@ -2101,5 +2215,26 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
                 }
             }
         });
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            float x = event.values[0];
+            float y = event.values[1];
+            float z = event.values[2];
+            if (Math.abs(x) > 3 || Math.abs(y) > 3) {
+                if (Math.abs(x) > Math.abs(y)) {
+                    mFURenderer.onDeviceOrientationChanged(x > 0 ? 0 : 180);
+                } else {
+                    mFURenderer.onDeviceOrientationChanged(y > 0 ? 90 : 270);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
     }
 }

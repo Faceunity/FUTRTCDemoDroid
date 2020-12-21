@@ -1,24 +1,12 @@
 package com.tencent.liteav.liveroom.model.impl.av.trtc;
 
-import android.app.Activity;
 import android.content.Context;
-import android.hardware.Camera;
-import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.TextUtils;
-import android.view.View;
 
-import com.faceunity.customdata.CameraRenderer;
-import com.faceunity.customdata.GLTextureView;
-import com.faceunity.customdata.RendererStatusListener;
-import com.faceunity.customdata.gles.core.GlUtil;
-import com.faceunity.customdata.utils.CameraUtils;
-import com.faceunity.customdata.utils.PreferenceUtil;
-import com.faceunity.nama.FURenderer;
-import com.faceunity.nama.ui.FaceUnityView;
 import com.tencent.liteav.audio.TXAudioEffectManager;
-import com.tencent.liteav.liveroom.R;
+import com.tencent.liteav.beauty.TXBeautyManager;
 import com.tencent.liteav.liveroom.model.impl.base.TRTCLogger;
 import com.tencent.liteav.liveroom.model.impl.base.TXCallback;
 import com.tencent.rtmp.ui.TXCloudVideoView;
@@ -33,8 +21,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-//import com.tencent.liteav.beauty.TXBeautyManager;
-
 public class TXTRTCLiveRoom extends TRTCCloudListener implements ITRTCTXLiveRoom {
     private static final String TAG = "TXTRTCLiveRoom";
     private static final long PLAY_TIME_OUT = 5000;
@@ -42,7 +28,7 @@ public class TXTRTCLiveRoom extends TRTCCloudListener implements ITRTCTXLiveRoom
     private static TXTRTCLiveRoom sInstance;
 
     private TRTCCloud mTRTCCloud;
-    //    private TXBeautyManager         mTXBeautyManager;
+    private TXBeautyManager mTXBeautyManager;
     // 一开始进房的角色
     private int mOriginRole;
     private TXCallback mEnterRoomCallback;
@@ -56,9 +42,6 @@ public class TXTRTCLiveRoom extends TRTCCloudListener implements ITRTCTXLiveRoom
     private Map<String, TXCallback> mPlayCallbackMap;
     private Map<String, Runnable> mPlayTimeoutRunnable;
     private Handler mMainHandler;
-    private CameraRenderer mCameraRenderer;
-    private GLTextureView mGlTextureView;
-    private boolean mIsFuEffect;
 
     public static synchronized TXTRTCLiveRoom getInstance() {
         if (sInstance == null) {
@@ -71,44 +54,10 @@ public class TXTRTCLiveRoom extends TRTCCloudListener implements ITRTCTXLiveRoom
     public void init(Context context) {
         TRTCLogger.i(TAG, "init context:" + context);
         mTRTCCloud = TRTCCloud.sharedInstance(context);
+        mTXBeautyManager = mTRTCCloud.getBeautyManager();
         mPlayCallbackMap = new HashMap<>();
         mPlayTimeoutRunnable = new HashMap<>();
         mMainHandler = new Handler(Looper.getMainLooper());
-    }
-
-    @Override
-    public void onActivityCreate(Activity activity) {
-        boolean isFuEffect = TextUtils.equals(PreferenceUtil.VALUE_ON, PreferenceUtil.getString(activity, PreferenceUtil.KEY_FACEUNITY_IS_ON));
-        mIsFuEffect = isFuEffect;
-        if (isFuEffect) {
-            FURenderer fuRenderer = new FURenderer.Builder(activity)
-                    .setInputTextureType(FURenderer.INPUT_EXTERNAL_OES_TEXTURE)
-                    .setCameraType(Camera.CameraInfo.CAMERA_FACING_FRONT)
-                    .setInputImageOrientation(CameraUtils.getCameraOrientation(Camera.CameraInfo.CAMERA_FACING_FRONT))
-                    .build();
-            FaceUnityView faceUnityView = (FaceUnityView) activity.findViewById(R.id.fu_beauty_view);
-            faceUnityView.setModuleManager(fuRenderer);
-            mTRTCCloud.enableCustomVideoCapture(true);
-            GLTextureView glTextureView = new GLTextureView(activity);
-            mCameraRenderer = new CameraRenderer(activity, glTextureView, new RendererStatusListener(activity, fuRenderer));
-            int supportGlVersion;
-            if ("Meizu".equals(Build.MANUFACTURER) && "PRO 7 Plus".equals(Build.MODEL)) {
-                supportGlVersion = 2;
-            } else {
-                supportGlVersion = GlUtil.getSupportGLVersion(activity);
-            }
-            glTextureView.setEGLContextClientVersion(supportGlVersion);
-            glTextureView.setRenderer(mCameraRenderer);
-            glTextureView.setRenderMode(GLTextureView.RENDERMODE_WHEN_DIRTY);
-            mGlTextureView = glTextureView;
-        } else {
-            activity.findViewById(R.id.fu_beauty_view).setVisibility(View.GONE);
-        }
-    }
-
-    @Override
-    public void onActivityDestroy() {
-
     }
 
     @Override
@@ -199,9 +148,10 @@ public class TXTRTCLiveRoom extends TRTCCloudListener implements ITRTCTXLiveRoom
         } else if (mOriginRole == TRTCCloudDef.TRTCRoleAnchor) {
             // 大主播的时候切换分辨率
             TRTCCloudDef.TRTCVideoEncParam param = new TRTCCloudDef.TRTCVideoEncParam();
-            param.videoResolution = TRTCCloudDef.TRTC_VIDEO_RESOLUTION_960_540;
-            param.videoBitrate = 1200;
+            param.videoResolution = TRTCCloudDef.TRTC_VIDEO_RESOLUTION_1280_720;
+            param.videoBitrate = 1800;
             param.videoFps = 15;
+            param.enableAdjustRes = true;
             param.videoResolutionMode = TRTCCloudDef.TRTC_VIDEO_RESOLUTION_MODE_PORTRAIT;
             mTRTCCloud.setVideoEncoderParam(param);
         }
@@ -228,32 +178,10 @@ public class TXTRTCLiveRoom extends TRTCCloudListener implements ITRTCTXLiveRoom
         }
     }
 
-    /**
-     * 外部自采集和渲染
-     *
-     * @param enable
-     */
-    private void startCustomLocalPreview(boolean enable, TXCloudVideoView localVideoView) {
-        if (enable) {
-            localVideoView.addVideoView(mGlTextureView);
-            if (mCameraRenderer != null) {
-                mCameraRenderer.onResume();
-            }
-        } else {
-            if (mCameraRenderer != null) {
-                mCameraRenderer.onPause();
-            }
-        }
-    }
-
     @Override
     public void startCameraPreview(boolean isFront, TXCloudVideoView view, TXCallback callback) {
         TRTCLogger.i(TAG, "start camera preview.");
-        if (mIsFuEffect) {
-            startCustomLocalPreview(true, view);
-        } else {
-            mTRTCCloud.startLocalPreview(isFront, view);
-        }
+        mTRTCCloud.startLocalPreview(isFront, view);
         if (callback != null) {
             callback.onCallback(0, "success");
         }
@@ -262,22 +190,12 @@ public class TXTRTCLiveRoom extends TRTCCloudListener implements ITRTCTXLiveRoom
     @Override
     public void stopCameraPreview() {
         TRTCLogger.i(TAG, "stop camera preview.");
-        if (mIsFuEffect) {
-            startCustomLocalPreview(false, null);
-        } else {
-            mTRTCCloud.stopLocalPreview();
-        }
+        mTRTCCloud.stopLocalPreview();
     }
 
     @Override
     public void switchCamera() {
-        if (mIsFuEffect) {
-            if (mCameraRenderer != null) {
-                mCameraRenderer.switchCamera();
-            }
-        } else {
-            mTRTCCloud.switchCamera();
-        }
+        mTRTCCloud.switchCamera();
     }
 
     @Override
@@ -605,10 +523,10 @@ public class TXTRTCLiveRoom extends TRTCCloudListener implements ITRTCTXLiveRoom
         TRTCLogger.i(TAG, "on set mix transcoding, code:" + i + " msg:" + s);
     }
 
-//    @Override
-//    public TXBeautyManager getTXBeautyManager() {
-//        return mTXBeautyManager;
-//    }
+    @Override
+    public TXBeautyManager getTXBeautyManager() {
+        return mTXBeautyManager;
+    }
 
     @Override
     public TXAudioEffectManager getAudioEffectManager() {

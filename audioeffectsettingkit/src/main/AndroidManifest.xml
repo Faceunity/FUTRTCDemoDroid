@@ -1,1 +1,2 @@
-<manifest package="com.tencent.liteav.audiosettingkit" />
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.tencent.liteav.audiosettingkit" />

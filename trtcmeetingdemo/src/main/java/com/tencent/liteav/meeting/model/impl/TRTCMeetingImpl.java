@@ -1,9 +1,19 @@
 package com.tencent.liteav.meeting.model.impl;
 
+import android.app.Activity;
 import android.content.Context;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
+import android.opengl.EGL14;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
+import com.faceunity.nama.FURenderer;
+import com.faceunity.nama.utils.CameraUtils;
+import com.tencent.liteav.beauty.TXBeautyManager;
 import com.tencent.liteav.meeting.model.TRTCMeeting;
 import com.tencent.liteav.meeting.model.TRTCMeetingCallback;
 import com.tencent.liteav.meeting.model.TRTCMeetingDef;
@@ -20,6 +30,7 @@ import com.tencent.liteav.meeting.model.impl.trtc.TXTRTCMixUser;
 import com.tencent.rtmp.ui.TXCloudVideoView;
 import com.tencent.trtc.TRTCCloud;
 import com.tencent.trtc.TRTCCloudDef;
+import com.tencent.trtc.TRTCCloudListener;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -29,26 +40,32 @@ import java.util.Map;
 /**
  * TRTCMeeting 的实现类
  */
-public class TRTCMeetingImpl extends TRTCMeeting implements ITXTRTCMeetingDelegate, ITXRoomServiceDelegate {
-    private static final String          TAG = "TRTCMeetingImpl";
-    private static       TRTCMeetingImpl sInstance;
+public class TRTCMeetingImpl extends TRTCMeeting implements ITXTRTCMeetingDelegate, ITXRoomServiceDelegate,
+        SensorEventListener {
+    private static final String TAG = "TRTCMeetingImpl";
+    private static TRTCMeetingImpl sInstance;
 
-    private TRTCMeetingDelegate                  mTRTCMeetingDelegate;
+    private TRTCMeetingDelegate mTRTCMeetingDelegate;
     // 所有调用都切到主线程使用，保证内部多线程安全问题
-    private Handler                              mMainHandler;
+    private Handler mMainHandler;
     // 外部可指定的回调线程
-    private Handler                              mDelegateHandler;
-    private String                               mRecordingAudioPath;
+    private Handler mDelegateHandler;
+    private String mRecordingAudioPath;
     private Map<String, TRTCMeetingDef.UserInfo> mUserInfoMap;
     // 对外的辅流id - 真正的userid 隐射
-    private Map<String, String>                  mSubStreamMap;
-    private boolean                              mIsUseFrontCamera;
-    private int                                  mSdkAppId;
-    private List<String>                         mUserIdList;
-    private String                               mUserSig;
-    private String                               mUserId;
-    private int                                  mRoomId;
-    private boolean                              mIsGetLiveUrl;
+    private Map<String, String> mSubStreamMap;
+    private boolean mIsUseFrontCamera;
+    private int mSdkAppId;
+    private List<String> mUserIdList;
+    private String mUserSig;
+    private String mUserId;
+    private int mRoomId;
+    private boolean mIsGetLiveUrl;
+    private TRTCCloud mTRTCCloud;
+    private boolean mIsFuEffect;
+    private SensorManager mSensorManager;
+    private FURenderer mFURenderer;
+    private Context mContext;
 
     private TRTCMeetingImpl(Context context) {
         mMainHandler = new Handler(Looper.getMainLooper());
@@ -60,6 +77,7 @@ public class TRTCMeetingImpl extends TRTCMeeting implements ITXTRTCMeetingDelega
         TXTRTCMeeting.getInstance().setDelegate(this);
         TXRoomService.getInstance().init(context);
         TXRoomService.getInstance().setDelegate(this);
+        mTRTCCloud = TRTCCloud.sharedInstance(context);
         clear();
     }
 
@@ -116,6 +134,29 @@ public class TRTCMeetingImpl extends TRTCMeeting implements ITXTRTCMeetingDelega
             sInstance.destroy();
             sInstance = null;
         }
+    }
+
+    @Override
+    public FURenderer createCustomRenderer(Activity activity, boolean isFrontCamera) {
+        super.createCustomRenderer(activity, isFrontCamera);
+        mIsFuEffect = true;
+        mIsUseFrontCamera = isFrontCamera;
+        int cameraFacing = mIsUseFrontCamera ? FURenderer.CAMERA_FACING_FRONT : FURenderer.CAMERA_FACING_BACK;
+        FURenderer fuRenderer = new FURenderer.Builder(activity)
+                .setInputTextureType(FURenderer.INPUT_TEXTURE_2D)
+                .setCameraFacing(cameraFacing)
+                .setInputImageOrientation(CameraUtils.getCameraOrientation(cameraFacing))
+                .setRunBenchmark(true)
+                .setOnDebugListener(new FURenderer.OnDebugListener() {
+                    @Override
+                    public void onFpsChanged(double fps, double callTime) {
+                        Log.d(TAG, "onFpsChanged " + String.format("fps: %.2f, callTime: %.2f", fps, callTime));
+                    }
+                })
+                .build();
+        mFURenderer = fuRenderer;
+        mContext = activity.getApplicationContext();
+        return fuRenderer;
     }
 
     @Override
@@ -303,16 +344,18 @@ public class TRTCMeetingImpl extends TRTCMeeting implements ITXTRTCMeetingDelega
                 TXRoomService.getInstance().getUserInfo(mUserIdList, new TXUserListCallback() {
                     @Override
                     public void onCallback(int code, String msg, List<TXUserInfo> list) {
-                        for (TXUserInfo info : list) {
-                            String                  userId   = info.userId;
-                            TRTCMeetingDef.UserInfo userInfo = mUserInfoMap.get(userId);
-                            if (userInfo == null) {
-                                userInfo = new TRTCMeetingDef.UserInfo();
-                                mUserInfoMap.put(info.userId, userInfo);
+                        if (list != null) {
+                            for (TXUserInfo info : list) {
+                                String userId = info.userId;
+                                TRTCMeetingDef.UserInfo userInfo = mUserInfoMap.get(userId);
+                                if (userInfo == null) {
+                                    userInfo = new TRTCMeetingDef.UserInfo();
+                                    mUserInfoMap.put(info.userId, userInfo);
+                                }
+                                userInfo.userId = info.userId;
+                                userInfo.userName = info.userName;
+                                userInfo.userAvatar = info.avatarURL;
                             }
-                            userInfo.userId = info.userId;
-                            userInfo.userName = info.userName;
-                            userInfo.userAvatar = info.avatarURL;
                         }
                         if (userListCallback != null) {
                             userListCallback.onCallback(code, msg, new ArrayList<>(mUserInfoMap.values()));
@@ -346,21 +389,24 @@ public class TRTCMeetingImpl extends TRTCMeeting implements ITXTRTCMeetingDelega
                     }
                     return;
                 }
+                list.add(userId);
                 // 不是辅流走这里
                 TXRoomService.getInstance().getUserInfo(list, new TXUserListCallback() {
                     @Override
                     public void onCallback(int code, String msg, List<TXUserInfo> list) {
-                        for (TXUserInfo info : list) {
-                            String                  userId   = info.userId;
-                            TRTCMeetingDef.UserInfo userInfo = mUserInfoMap.get(userId);
-                            if (userInfo == null) {
-                                userInfo = new TRTCMeetingDef.UserInfo();
-                                mUserInfoMap.put(info.userId, userInfo);
+                        if (list != null) {
+                            for (TXUserInfo info : list) {
+                                String userId = info.userId;
+                                TRTCMeetingDef.UserInfo userInfo = mUserInfoMap.get(userId);
+                                if (userInfo == null) {
+                                    userInfo = new TRTCMeetingDef.UserInfo();
+                                    mUserInfoMap.put(info.userId, userInfo);
+                                }
+                                userInfo.userId = info.userId;
+                                userInfo.userName = info.userName;
+                                userInfo.userAvatar = info.avatarURL;
+                                callbackList.add(userInfo);
                             }
-                            userInfo.userId = info.userId;
-                            userInfo.userName = info.userName;
-                            userInfo.userAvatar = info.avatarURL;
-                            callbackList.add(userInfo);
                         }
                         if (userListCallback != null) {
                             userListCallback.onCallback(code, msg, callbackList);
@@ -502,10 +548,67 @@ public class TRTCMeetingImpl extends TRTCMeeting implements ITXTRTCMeetingDelega
 
     @Override
     public void startCameraPreview(final boolean isFront, final TXCloudVideoView view) {
+        Log.d(TAG, "startCameraPreview() called with: isFront = [" + isFront + "], view = [" + view + "]");
+        mIsUseFrontCamera = isFront;
+        if (mIsFuEffect) {
+            boolean sendTexture = true;
+            if (sendTexture) {
+                mTRTCCloud.setLocalVideoProcessListener(TRTCCloudDef.TRTC_VIDEO_PIXEL_FORMAT_Texture_2D,
+                        TRTCCloudDef.TRTC_VIDEO_BUFFER_TYPE_TEXTURE, new TRTCCloudListener.TRTCVideoFrameListener() {
+                            @Override
+                            public void onGLContextCreated() {
+                                Log.i(TAG, "tex onGLContextCreated: " + EGL14.eglGetCurrentContext());
+                                mFURenderer.onSurfaceCreated();
+                                mFURenderer.setUseTexAsync(true);
+                            }
+
+                            @Override
+                            public int onProcessVideoFrame(TRTCCloudDef.TRTCVideoFrame src, TRTCCloudDef.TRTCVideoFrame dest) {
+//                            Log.v(TAG, String.format("process video frame, w %d, h %d, tex %d, rotation %d, pixel format %d",
+//                                    src.width, src.height, src.texture.textureId, src.rotation, src.pixelFormat));
+                                dest.texture.textureId = mFURenderer.onDrawFrameSingleInput(src.texture.textureId, src.width, src.height);
+                                return 0;
+                            }
+
+                            @Override
+                            public void onGLContextDestory() {
+                                Log.i(TAG, "tex onGLContextDestory: " + EGL14.eglGetCurrentContext());
+                                mFURenderer.onSurfaceDestroyed();
+                            }
+                        });
+            } else {
+                mTRTCCloud.setLocalVideoProcessListener(TRTCCloudDef.TRTC_VIDEO_PIXEL_FORMAT_NV21,
+                        TRTCCloudDef.TRTC_VIDEO_BUFFER_TYPE_BYTE_ARRAY, new TRTCCloudListener.TRTCVideoFrameListener() {
+
+                            @Override
+                            public void onGLContextCreated() {
+                                Log.i(TAG, "nv21 onGLContextCreated: " + EGL14.eglGetCurrentContext());
+                                mFURenderer.onSurfaceCreated();
+                            }
+
+                            @Override
+                            public int onProcessVideoFrame(TRTCCloudDef.TRTCVideoFrame src, TRTCCloudDef.TRTCVideoFrame dest) {
+//                                Log.v(TAG, String.format("process video frame, w %d, h %d, src length %d, rotation %d, buffer type %d, dest length %d",
+//                                        src.width, src.height, src.data.length, src.rotation, src.bufferType, dest.data.length));
+                                mFURenderer.onDrawFrameSingleInput(src.data, src.width, src.height,
+                                        FURenderer.INPUT_FORMAT_NV21_BUFFER, dest.data, src.width, src.height);
+                                return 0;
+                            }
+
+                            @Override
+                            public void onGLContextDestory() {
+                                Log.i(TAG, "nv21 onGLContextDestory: " + EGL14.eglGetCurrentContext());
+                                mFURenderer.onSurfaceDestroyed();
+                            }
+                        });
+            }
+            mSensorManager = (SensorManager) mContext.getSystemService(Context.SENSOR_SERVICE);
+            Sensor sensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+            mSensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL);
+        }
         runOnMainThread(new Runnable() {
             @Override
             public void run() {
-                mIsUseFrontCamera = isFront;
                 TXTRTCMeeting.getInstance().startCameraPreview(isFront, view, null);
             }
         });
@@ -513,6 +616,10 @@ public class TRTCMeetingImpl extends TRTCMeeting implements ITXTRTCMeetingDelega
 
     @Override
     public void stopCameraPreview() {
+        Log.d(TAG, "stopCameraPreview() called");
+        if (mSensorManager != null) {
+            mSensorManager.unregisterListener(this);
+        }
         runOnMainThread(new Runnable() {
             @Override
             public void run() {
@@ -529,6 +636,13 @@ public class TRTCMeetingImpl extends TRTCMeeting implements ITXTRTCMeetingDelega
                 if (isFront != mIsUseFrontCamera) {
                     mIsUseFrontCamera = isFront;
                     TXTRTCMeeting.getInstance().switchCamera();
+                }
+                if (mIsFuEffect) {
+                    int cameraId = isFront ? FURenderer.CAMERA_FACING_FRONT : FURenderer.CAMERA_FACING_BACK;
+                    mFURenderer.onCameraChanged(cameraId, CameraUtils.getCameraOrientation(cameraId));
+                    if (mFURenderer.getMakeupModule() != null) {
+                        mFURenderer.getMakeupModule().setIsMakeupFlipPoints(isFront ? 0 : 1);
+                    }
                 }
             }
         });
@@ -570,6 +684,16 @@ public class TRTCMeetingImpl extends TRTCMeeting implements ITXTRTCMeetingDelega
             @Override
             public void run() {
                 TXTRTCMeeting.getInstance().setLocalViewMirror(type);
+            }
+        });
+    }
+
+    @Override
+    public void setNetworkQosParam(final TRTCCloudDef.TRTCNetworkQosParam qosParam) {
+        runOnMainThread(new Runnable() {
+            @Override
+            public void run() {
+                TXTRTCMeeting.getInstance().setNetworkQosParam(qosParam);
             }
         });
     }
@@ -674,10 +798,10 @@ public class TRTCMeetingImpl extends TRTCMeeting implements ITXTRTCMeetingDelega
         });
     }
 
-//    @Override
-//    public TXBeautyManager getBeautyManager() {
-//        return TXTRTCMeeting.getInstance().getTXBeautyManager();
-//    }
+    @Override
+    public TXBeautyManager getBeautyManager() {
+        return TXTRTCMeeting.getInstance().getTXBeautyManager();
+    }
 
     @Override
     public void startScreenCapture(final TRTCCloudDef.TRTCVideoEncParam param, final TRTCCloudDef.TRTCScreenShareParams screenShareParams) {
@@ -890,6 +1014,54 @@ public class TRTCMeetingImpl extends TRTCMeeting implements ITXTRTCMeetingDelega
     }
 
     @Override
+    public void onScreenCaptureStarted() {
+        runOnDelegateThread(new Runnable() {
+            @Override
+            public void run() {
+                if (mTRTCMeetingDelegate != null) {
+                    mTRTCMeetingDelegate.onScreenCaptureStarted();
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onScreenCapturePaused() {
+        runOnDelegateThread(new Runnable() {
+            @Override
+            public void run() {
+                if (mTRTCMeetingDelegate != null) {
+                    mTRTCMeetingDelegate.onScreenCapturePaused();
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onScreenCaptureResumed() {
+        runOnDelegateThread(new Runnable() {
+            @Override
+            public void run() {
+                if (mTRTCMeetingDelegate != null) {
+                    mTRTCMeetingDelegate.onScreenCaptureResumed();
+                }
+            }
+        });
+    }
+
+    @Override
+    public void onScreenCaptureStopped(final int reason) {
+        runOnDelegateThread(new Runnable() {
+            @Override
+            public void run() {
+                if (mTRTCMeetingDelegate != null) {
+                    mTRTCMeetingDelegate.onScreenCaptureStopped(reason);
+                }
+            }
+        });
+    }
+
+    @Override
     public void onError(final int errorCode, final String errorMsg) {
         runOnDelegateThread(new Runnable() {
             @Override
@@ -918,7 +1090,7 @@ public class TRTCMeetingImpl extends TRTCMeeting implements ITXTRTCMeetingDelega
         runOnDelegateThread(new Runnable() {
             @Override
             public void run() {
-                if (mTRTCMeetingDelegate != null) {
+                if (mTRTCMeetingDelegate != null && userVolumes != null) {
                     for (TRTCCloudDef.TRTCVolumeInfo info : userVolumes) {
                         mTRTCMeetingDelegate.onUserVolumeUpdate(info.userId, info.volume);
                     }
@@ -932,6 +1104,7 @@ public class TRTCMeetingImpl extends TRTCMeeting implements ITXTRTCMeetingDelega
         runOnDelegateThread(new Runnable() {
             @Override
             public void run() {
+                TXTRTCMeeting.getInstance().exitRoom(null);
                 if (mTRTCMeetingDelegate != null) {
                     mTRTCMeetingDelegate.onRoomDestroy(roomId);
                 }
@@ -1011,5 +1184,26 @@ public class TRTCMeetingImpl extends TRTCMeeting implements ITXTRTCMeetingDelega
             }
             //            }
         });
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            float x = event.values[0];
+            float y = event.values[1];
+            float z = event.values[2];
+            if (Math.abs(x) > 3 || Math.abs(y) > 3) {
+                if (Math.abs(x) > Math.abs(y)) {
+                    mFURenderer.onDeviceOrientationChanged(x > 0 ? 0 : 180);
+                } else {
+                    mFURenderer.onDeviceOrientationChanged(y > 0 ? 90 : 270);
+                }
+            }
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
     }
 }

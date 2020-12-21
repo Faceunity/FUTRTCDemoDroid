@@ -3,14 +3,11 @@
 buildscript {
 
     repositories {
-        maven { url 'http://maven.aliyun.com/nexus/content/repositories/google' }
-        maven { url 'http://maven.aliyun.com/nexus/content/repositories/jcenter' }
-//        maven { url "https://mirrors.tencent.com/nexus/repository/maven-public/" }
         google()
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.4.2'
+        classpath 'com.android.tools.build:gradle:3.5.3'
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
@@ -19,13 +16,6 @@ buildscript {
 
 allprojects {
     repositories {
-        flatDir {
-            dirs 'libs'
-            dirs project(':app').file('libs')
-        }
-        maven { url 'http://maven.aliyun.com/nexus/content/repositories/google' }
-        maven { url 'http://maven.aliyun.com/nexus/content/repositories/jcenter' }
-//        maven { url "https://mirrors.tencent.com/nexus/repository/maven-public/" }
         google()
         jcenter()
     }
@@ -36,13 +26,13 @@ task clean(type: Delete) {
 }
 
 ext {
-    compileSdkVersion = 25
+    compileSdkVersion = 26
     buildToolsVersion = "28.0.3"
-    supportSdkVersion = "25.4.0"
+    supportSdkVersion = "26.0.1"
     minSdkVersion = 19
     targetSdkVersion = 26
-    liteavSdk="com.tencent.liteav:LiteAVSDK_TRTC:latest.release"
-    imSdk = 'com.tencent.imsdk:imsdk:4.7.10'
+    liteavSdk="com.tencent.liteav:LiteAVSDK_TRTC:latest.release" // 8.1.9717
+    imSdk = 'com.tencent.imsdk:imsdk:4.9.1'
     versionCode = 1
     versionName = "v1.0"
     ndkAbi = 'armeabi'//,'armeabi-v7a', 'arm64-v8a'

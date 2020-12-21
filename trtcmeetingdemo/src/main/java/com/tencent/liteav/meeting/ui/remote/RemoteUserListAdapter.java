@@ -11,6 +11,7 @@ import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 import com.tencent.liteav.demo.trtc.R;
+import com.tencent.liteav.meeting.model.TRTCMeetingDef;
 import com.tencent.liteav.meeting.ui.MemberEntity;
 
 import java.util.List;
