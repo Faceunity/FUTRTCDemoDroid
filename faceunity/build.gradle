@@ -6,9 +6,9 @@ android {
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 725
-        versionName "7.2.5"
-        // 7.2.5_phy_ddf84f98_089de14
+        versionCode 730
+        versionName "7.3.0"
+        // 7.3.0_phy_505b959b_bf80f59
     }
     buildTypes {
         release {

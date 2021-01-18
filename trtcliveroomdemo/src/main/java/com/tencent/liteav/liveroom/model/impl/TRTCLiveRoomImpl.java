@@ -1753,7 +1753,7 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
                 .setInputTextureType(FURenderer.INPUT_TEXTURE_2D)
                 .setCameraFacing(cameraFacing)
                 .setInputImageOrientation(CameraUtils.getCameraOrientation(cameraFacing))
-                .setRunBenchmark(true)
+                .setRunBenchmark(false)
                 .setOnDebugListener(new FURenderer.OnDebugListener() {
                     @Override
                     public void onFpsChanged(double fps, double callTime) {

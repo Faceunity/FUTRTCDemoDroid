@@ -3,11 +3,9 @@ package com.tencent.liteav.demo;
 import android.os.Build;
 import android.os.StrictMode;
 import android.support.multidex.MultiDexApplication;
-import android.util.Log;
 
 import com.tencent.bugly.crashreport.CrashReport;
 import com.tencent.rtmp.TXLiveBase;
-import com.tencent.trtc.TRTCCloud;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -28,20 +26,15 @@ public class DemoApplication extends MultiDexApplication {
 
     @Override
     public void onCreate() {
-
         super.onCreate();
-
         instance = this;
 
-        TXLiveBase.setConsoleEnabled(true);
+//        TXLiveBase.setConsoleEnabled(true);
         CrashReport.UserStrategy strategy = new CrashReport.UserStrategy(getApplicationContext());
         strategy.setAppVersion(TXLiveBase.getSDKVersionStr());
         CrashReport.initCrashReport(getApplicationContext(), strategy);
 
         TXLiveBase.getInstance().setLicence(instance, licenceUrl, licenseKey);
-
-        String sdkVersion = TRTCCloud.getSDKVersion();
-        Log.i(TAG, "onCreate: TRTC SDK version " + sdkVersion);
 
         // 短视频licence设置
         StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();

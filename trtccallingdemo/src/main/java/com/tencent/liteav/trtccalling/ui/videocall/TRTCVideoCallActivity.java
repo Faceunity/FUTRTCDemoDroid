@@ -9,7 +9,6 @@ import android.support.annotation.Nullable;
 import android.support.constraint.Group;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
@@ -18,7 +17,6 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.blankj.utilcode.util.ToastUtils;
-import com.faceunity.nama.FURenderer;
 import com.faceunity.nama.ui.FaceUnityView;
 import com.faceunity.nama.utils.PreferenceUtil;
 import com.squareup.picasso.Picasso;
@@ -26,19 +24,13 @@ import com.tencent.liteav.trtccalling.R;
 import com.tencent.liteav.trtccalling.model.TRTCCalling;
 import com.tencent.liteav.trtccalling.model.TRTCCallingDelegate;
 import com.tencent.liteav.trtccalling.model.impl.TRTCCallingImpl;
-import com.tencent.liteav.trtccalling.profile.CSVUtils;
-import com.tencent.liteav.trtccalling.profile.Constant;
 import com.tencent.liteav.trtccalling.ui.videocall.videolayout.TRTCVideoLayout;
 import com.tencent.liteav.trtccalling.ui.videocall.videolayout.TRTCVideoLayoutManager;
 
-import java.io.File;
 import java.io.Serializable;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -47,7 +39,6 @@ import java.util.Map;
  * @author guanyifeng
  */
 public class TRTCVideoCallActivity extends AppCompatActivity {
-    private static final String TAG = "TRTCVideoCallActivity";
     public static final int TYPE_BEING_CALLED = 1;
     public static final int TYPE_CALL = 2;
 
@@ -301,7 +292,6 @@ public class TRTCVideoCallActivity extends AppCompatActivity {
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.trtccalling_videocall_activity_call_main);
 
-        initCsvUtil(this);
         initView();
         initData();
         initListener();
@@ -325,7 +315,6 @@ public class TRTCVideoCallActivity extends AppCompatActivity {
         super.onDestroy();
         stopTimeCount();
         mTimeHandlerThread.quit();
-        mCSVUtils.close();
     }
 
     private void initListener() {
@@ -358,29 +347,9 @@ public class TRTCVideoCallActivity extends AppCompatActivity {
         mHandsfreeImg.setActivated(isHandsFree);
     }
 
-    private CSVUtils mCSVUtils;
-
-    private void initCsvUtil(Context context) {
-        mCSVUtils = new CSVUtils(context);
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault());
-        String dateStrDir = format.format(new Date(System.currentTimeMillis()));
-        dateStrDir = dateStrDir.replaceAll("-", "").replaceAll("_", "");
-        SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmssSSS", Locale.getDefault());
-        String dateStrFile = df.format(new Date());
-        String filePath = Constant.filePath + dateStrDir + File.separator + "excel-" + dateStrFile + ".csv";
-        Log.d(TAG, "initLog: CSV file path:" + filePath);
-        StringBuilder headerInfo = new StringBuilder();
-        headerInfo.append("version：").append(FURenderer.getVersion()).append(CSVUtils.COMMA)
-                .append("机型：").append(android.os.Build.MANUFACTURER).append(android.os.Build.MODEL)
-                .append("处理方式：Texture").append(CSVUtils.COMMA);
-        mCSVUtils.initHeader(filePath, headerInfo);
-    }
-
-
     private void initData() {
         // 初始化成员变量
         mTRTCCalling = TRTCCallingImpl.sharedInstance(this);
-        mTRTCCalling.setProfile(mCSVUtils);
         mTRTCCalling.addDelegate(mTRTCCallingDelegate);
         FaceUnityView faceUnityView = findViewById(R.id.fu_view);
         boolean isFuEffect = TextUtils.equals(PreferenceUtil.VALUE_ON, PreferenceUtil.getString(this, PreferenceUtil.KEY_FACEUNITY_IS_ON));
