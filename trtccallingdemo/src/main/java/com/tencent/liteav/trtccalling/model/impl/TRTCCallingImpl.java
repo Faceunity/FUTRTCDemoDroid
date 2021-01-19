@@ -389,7 +389,7 @@ public class TRTCCallingImpl extends TRTCCalling implements SensorEventListener 
                 .setInputTextureType(FURenderer.INPUT_TEXTURE_2D)
                 .setCameraFacing(cameraFacing)
                 .setInputImageOrientation(CameraUtils.getCameraOrientation(cameraFacing))
-                .setRunBenchmark(true)
+                .setRunBenchmark(false)
                 .setOnDebugListener(new FURenderer.OnDebugListener() {
                     @Override
                     public void onFpsChanged(double fps, double callTime) {
@@ -695,6 +695,11 @@ public class TRTCCallingImpl extends TRTCCalling implements SensorEventListener 
         enterTRTCRoom();
     }
 
+    public static final int ENCODE_FRAME_WIDTH = 960;
+    public static final int ENCODE_FRAME_HEIGHT = 540;
+    public static final int ENCODE_FRAME_BITRATE = 1000;
+    public static final int ENCODE_FRAME_FPS = 30;
+
     /**
      * trtc 进房
      */
@@ -708,8 +713,8 @@ public class TRTCCallingImpl extends TRTCCalling implements SensorEventListener 
             // 进房前需要设置一下关键参数
             TRTCCloudDef.TRTCVideoEncParam encParam = new TRTCCloudDef.TRTCVideoEncParam();
             encParam.videoResolution = TRTCCloudDef.TRTC_VIDEO_RESOLUTION_960_540;
-            encParam.videoFps = 30;
-            encParam.videoBitrate = 1000;
+            encParam.videoFps = ENCODE_FRAME_FPS;
+            encParam.videoBitrate = ENCODE_FRAME_BITRATE;
             encParam.videoResolutionMode = TRTCCloudDef.TRTC_VIDEO_RESOLUTION_MODE_PORTRAIT;
             encParam.enableAdjustRes = true;
             mTRTCCloud.setVideoEncoderParam(encParam);
@@ -788,9 +793,7 @@ public class TRTCCallingImpl extends TRTCCalling implements SensorEventListener 
                             public int onProcessVideoFrame(TRTCCloudDef.TRTCVideoFrame src, TRTCCloudDef.TRTCVideoFrame dest) {
 //                            Log.v(TAG, String.format("process video frame, w %d, h %d, tex %d, rotation %d, pixel format %d",
 //                                    src.width, src.height, src.texture.textureId, src.rotation, src.pixelFormat));
-                                long start = System.nanoTime();
                                 dest.texture.textureId = mFURenderer.onDrawFrameSingleInput(src.texture.textureId, src.width, src.height);
-                                mCSVUtils.writeCsv(null, System.nanoTime() - start);
                                 return 0;
                             }
 

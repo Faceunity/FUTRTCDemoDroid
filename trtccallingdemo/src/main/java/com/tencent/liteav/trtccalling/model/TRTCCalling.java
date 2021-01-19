@@ -5,7 +5,6 @@ import android.content.Context;
 
 import com.faceunity.nama.FURenderer;
 import com.tencent.liteav.trtccalling.model.impl.TRTCCallingImpl;
-import com.tencent.liteav.trtccalling.profile.CSVUtils;
 import com.tencent.rtmp.ui.TXCloudVideoView;
 
 import java.util.List;
@@ -83,12 +82,6 @@ public abstract class TRTCCalling {
                 sTRTCCalling = null;
             }
         }
-    }
-
-    protected CSVUtils mCSVUtils;
-
-    public void setProfile(CSVUtils csvUtils) {
-        mCSVUtils = csvUtils;
     }
 
     /**
