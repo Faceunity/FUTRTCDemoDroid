@@ -110,9 +110,7 @@ android {
 
 调用 `FURenderer` 类 的  `onDeviceOrientationChanged` 方法，用于重新为 SDK 设置参数。
 
-上面一系列方法的使用，具体在 demo 中的 `TXTRTCLiveRoom` 类、`TXTRTCMeeting` 类、`TRTCVideoCallImpl` 类，参考该代码示例接入即可。
-
-另外，自定义相机采集和渲染图像的代码在 customdata 模块，重点关注类 CameraRenderer、GLTextureView、RenderStatusListener。
+上面一系列方法的使用，具体在 demo 中的 `TXTRTCLiveRoom` 类、`TXTRTCMeeting` 类、`TRTCCallingImpl` 类，参考该代码示例接入即可。
 
 ### 三、接口介绍
 
