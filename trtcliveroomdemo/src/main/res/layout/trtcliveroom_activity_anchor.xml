@@ -285,9 +285,9 @@
     <com.faceunity.nama.ui.FaceUnityView
         android:id="@+id/fu_view"
         android:layout_width="match_parent"
+        android:visibility="gone"
         android:layout_height="wrap_content"
         app:layout_constraintBottom_toTopOf="@id/tool_bar_view" />
-
     <!--点赞动画-->
     <com.tencent.liteav.liveroom.ui.widget.like.TCHeartLayout
         android:id="@+id/heart_layout"

@@ -3,7 +3,12 @@ package com.tencent.liteav.demo;
 import android.os.Build;
 import android.os.StrictMode;
 import android.support.multidex.MultiDexApplication;
+import android.util.Log;
 
+import com.faceunity.core.callback.OperateCallback;
+import com.faceunity.core.faceunity.FURenderManager;
+import com.faceunity.core.utils.FULogger;
+import com.faceunity.nama.authpack;
 import com.tencent.bugly.crashreport.CrashReport;
 import com.tencent.rtmp.TXLiveBase;
 
@@ -43,6 +48,7 @@ public class DemoApplication extends MultiDexApplication {
             builder.detectFileUriExposure();
         }
         closeAndroidPDialog();
+//        registerFURender();
     }
 
     //    public static RefWatcher getRefWatcher(Context context) {
@@ -73,6 +79,25 @@ public class DemoApplication extends MultiDexApplication {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * 初始化相芯SDK
+     */
+    private void registerFURender() {
+        FURenderManager.setKitDebug(FULogger.LogLevel.DEBUG);
+        FURenderManager.setCoreDebug(FULogger.LogLevel.OFF);
+        FURenderManager.registerFURender(getApplication(), authpack.A(), new OperateCallback() {
+            @Override
+            public void onSuccess(int code, String msg) {
+                Log.d(TAG, "success:" + msg);
+            }
+
+            @Override
+            public void onFail(int errCode, String errMsg) {
+                Log.e(TAG, "errCode:" + errCode + "   errMsg:" + errMsg);
+            }
+        });
     }
 
 }

@@ -9,6 +9,7 @@ import com.tencent.liteav.audio.TXAudioEffectManager;
 import com.tencent.liteav.beauty.TXBeautyManager;
 import com.tencent.liteav.liveroom.model.impl.TRTCLiveRoomImpl;
 import com.tencent.rtmp.ui.TXCloudVideoView;
+import com.tencent.trtc.TRTCCloudListener;
 
 import java.util.List;
 
@@ -40,7 +41,7 @@ public abstract class TRTCLiveRoom {
      *
      * @return
      */
-    public FURenderer createCustomRenderer(Activity activity, boolean isFrontCamera) {
+    public FURenderer createCustomRenderer(Activity activity, boolean isFrontCamera,boolean isFuEffect) {
         return null;
     }
 
@@ -188,6 +189,12 @@ public abstract class TRTCLiveRoom {
      * @param callback 操作回调
      */
     public abstract void startCameraPreview(boolean isFront, TXCloudVideoView view, TRTCLiveRoomCallback.ActionCallback callback);
+
+    /**
+     * 设置video监听
+     * @param listener
+     */
+    public abstract void setLocalVideoRenderListener(TRTCCloudListener.TRTCVideoFrameListener listener);
 
     /**
      * 停止本地视频采集及预览
@@ -349,6 +356,9 @@ public abstract class TRTCLiveRoom {
      * 设置是否镜像展示
      */
     public abstract void setMirror(boolean isMirror);
+
+
+    public abstract void setVideoEncoderMirror(boolean isMirror);
 
     /**
      * 静音本地音频

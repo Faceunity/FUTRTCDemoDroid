@@ -8,9 +8,9 @@ import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
 
+import com.faceunity.core.utils.ThreadHelper;
 import com.faceunity.nama.FURenderer;
 import com.faceunity.nama.utils.PreferenceUtil;
-import com.faceunity.nama.utils.ThreadHelper;
 
 /**
  * 是否使用 FaceUnity Nama
@@ -48,7 +48,7 @@ public class NeedFaceUnityActivity extends Activity {
                     ThreadHelper.getInstance().execute(new Runnable() {
                         @Override
                         public void run() {
-                            FURenderer.setup(getApplicationContext());
+                            FURenderer.getInstance().setup(getApplicationContext());
                         }
                     });
                 }

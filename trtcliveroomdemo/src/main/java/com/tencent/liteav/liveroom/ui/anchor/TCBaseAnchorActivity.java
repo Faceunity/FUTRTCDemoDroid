@@ -130,7 +130,6 @@ public abstract class TCBaseAnchorActivity extends FragmentActivity implements T
         if (TextUtils.isEmpty(mSelfName)) {
             mSelfName = mSelfUserId;
         }
-
         initView();
     }
 
@@ -473,9 +472,9 @@ public abstract class TCBaseAnchorActivity extends FragmentActivity implements T
      * 发消息弹出框
      */
     private void showInputMsgDialog() {
-        WindowManager              windowManager = getWindowManager();
-        Display                    display       = windowManager.getDefaultDisplay();
-        WindowManager.LayoutParams lp            = mInputTextMsgDialog.getWindow().getAttributes();
+        WindowManager windowManager = getWindowManager();
+        Display display = windowManager.getDefaultDisplay();
+        WindowManager.LayoutParams lp = mInputTextMsgDialog.getWindow().getAttributes();
         lp.width = display.getWidth(); //设置宽度
         mInputTextMsgDialog.getWindow().setAttributes(lp);
         mInputTextMsgDialog.setCancelable(true);
