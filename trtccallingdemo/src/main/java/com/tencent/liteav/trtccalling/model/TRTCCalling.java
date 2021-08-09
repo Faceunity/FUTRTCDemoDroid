@@ -6,6 +6,7 @@ import android.content.Context;
 import com.faceunity.nama.FURenderer;
 import com.tencent.liteav.trtccalling.model.impl.TRTCCallingImpl;
 import com.tencent.rtmp.ui.TXCloudVideoView;
+import com.tencent.trtc.TRTCCloudListener;
 
 import java.util.List;
 
@@ -89,7 +90,7 @@ public abstract class TRTCCalling {
      *
      * @return
      */
-    public FURenderer createCustomRenderer(Activity activity, boolean isFrontCamera) {
+    public FURenderer createCustomRenderer(Activity activity, boolean isFrontCamera,boolean mIsEffect) {
         return null;
     }
 
@@ -172,6 +173,12 @@ public abstract class TRTCCalling {
     public abstract void startRemoteView(String userId, TXCloudVideoView txCloudVideoView);
 
     /**
+     * 添加render监听
+     * @param listener
+     */
+    public abstract void setLocalVideoRenderListener(TRTCCloudListener.TRTCVideoFrameListener listener);
+
+    /**
      * 当您收到 onUserVideoAvailable 回调为false时，可以停止渲染数据
      *
      * @param userId 远端用户id
@@ -206,6 +213,12 @@ public abstract class TRTCCalling {
      * @param isMute true:麦克风关闭 false:麦克风打开
      */
     public abstract void setMicMute(boolean isMute);
+
+    /**
+     * 设置推流镜像
+     * @param mirror
+     */
+    public abstract void setVideoEncoderMirror(boolean mirror);
 
     /**
      * 是否开启免提

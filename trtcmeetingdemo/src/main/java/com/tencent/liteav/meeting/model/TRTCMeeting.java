@@ -9,6 +9,7 @@ import com.tencent.liteav.beauty.TXBeautyManager;
 import com.tencent.liteav.meeting.model.impl.TRTCMeetingImpl;
 import com.tencent.rtmp.ui.TXCloudVideoView;
 import com.tencent.trtc.TRTCCloudDef;
+import com.tencent.trtc.TRTCCloudListener;
 
 public abstract class TRTCMeeting {
     public static final String CDN_DOMAIN = "http://3891.liveplay.myqcloud.com/live";
@@ -29,7 +30,7 @@ public abstract class TRTCMeeting {
      *
      * @return
      */
-    public FURenderer createCustomRenderer(Activity activity, boolean isFrontCamera) {
+    public FURenderer createCustomRenderer(Activity activity, boolean isFrontCamera,boolean isFuEffect) {
         return null;
     }
 
@@ -247,6 +248,12 @@ public abstract class TRTCMeeting {
     public abstract void setLocalViewMirror(int type);
 
     /**
+     * 设置推流镜像
+     * @param mirror
+     */
+    public abstract void setVideoEncoderMirror(boolean mirror);
+
+    /**
      * 设置网络qos参数
      *
      * @param qosParam
@@ -363,6 +370,12 @@ public abstract class TRTCMeeting {
      * @param screenShareParams 设置屏幕分享的特殊配置，其中推荐设置 floatingView，一方面可以避免 App 被系统强杀；另一方面也能助于保护用户隐私。
      */
     public abstract void startScreenCapture(TRTCCloudDef.TRTCVideoEncParam encParams, TRTCCloudDef.TRTCScreenShareParams screenShareParams);
+
+    /**
+     * 添加render监听
+     * @param listener
+     */
+    public abstract void setLocalVideoRenderListener(TRTCCloudListener.TRTCVideoFrameListener listener);
 
     /**
      * 停止屏幕采集

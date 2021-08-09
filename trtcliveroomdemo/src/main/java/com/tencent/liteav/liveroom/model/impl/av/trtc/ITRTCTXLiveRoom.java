@@ -26,6 +26,8 @@ public interface ITRTCTXLiveRoom {
 
     void setMirror(boolean isMirror);
 
+    void setVideoEncoderMirror(boolean isMirror);
+
     void muteLocalAudio(boolean mute);
 
     void startPublish(String streamId, TXCallback callback);

@@ -7,12 +7,17 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.opengl.EGL14;
+import android.opengl.GLES20;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.faceunity.core.enumeration.CameraFacingEnum;
+import com.faceunity.core.enumeration.FUAIProcessorEnum;
 import com.faceunity.nama.FURenderer;
-import com.faceunity.nama.utils.CameraUtils;
+import com.faceunity.nama.listener.FURendererListener;
+import com.faceunity.nama.profile.CSVUtils;
+import com.faceunity.nama.profile.Constant;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import com.tencent.imsdk.TIMConversationType;
@@ -42,11 +47,15 @@ import com.tencent.trtc.TRTCCloudListener;
 
 import org.json.JSONObject;
 
+import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
@@ -377,28 +386,19 @@ public class TRTCCallingImpl extends TRTCCalling implements SensorEventListener 
         mTRTCCloud = TRTCCloud.sharedInstance(context);
         mTRTCInternalListenerManager = new TRTCInternalListenerManager();
         mLastCallModel.version = CallModel.VALUE_PROTOCOL_VERSION;
+
+        initCsvUtil(context);
     }
 
     @Override
-    public FURenderer createCustomRenderer(Activity activity, boolean isFrontCamera) {
-        super.createCustomRenderer(activity, isFrontCamera);
-        mIsFuEffect = true;
-        mIsUseFrontCamera = isFrontCamera;
-        int cameraFacing = mIsUseFrontCamera ? FURenderer.CAMERA_FACING_FRONT : FURenderer.CAMERA_FACING_BACK;
-        FURenderer fuRenderer = new FURenderer.Builder(activity)
-                .setInputTextureType(FURenderer.INPUT_TEXTURE_2D)
-                .setCameraFacing(cameraFacing)
-                .setInputImageOrientation(CameraUtils.getCameraOrientation(cameraFacing))
-                .setRunBenchmark(false)
-                .setOnDebugListener(new FURenderer.OnDebugListener() {
-                    @Override
-                    public void onFpsChanged(double fps, double callTime) {
-                        Log.d(TAG, "onFpsChanged " + String.format("fps: %.2f, callTime: %.2f", fps, callTime));
-                    }
-                })
-                .build();
-        mFURenderer = fuRenderer;
-        return fuRenderer;
+    public FURenderer createCustomRenderer(Activity activity, boolean isFrontCamera, boolean isFuEffect) {
+        super.createCustomRenderer(activity, isFrontCamera, isFuEffect);
+        mIsFuEffect = isFuEffect;
+        if (mIsFuEffect) {
+            mFURenderer = FURenderer.getInstance();
+        }
+
+        return mFURenderer;
     }
 
     private void startCall() {
@@ -778,62 +778,47 @@ public class TRTCCallingImpl extends TRTCCalling implements SensorEventListener 
         Log.d(TAG, "openCamera is front:" + isFrontCamera);
         mIsUseFrontCamera = isFrontCamera;
         if (mIsFuEffect) {
-            boolean sendTexture = true;
-            if (sendTexture) {
-                mTRTCCloud.setLocalVideoProcessListener(TRTCCloudDef.TRTC_VIDEO_PIXEL_FORMAT_Texture_2D,
-                        TRTCCloudDef.TRTC_VIDEO_BUFFER_TYPE_TEXTURE, new TRTCCloudListener.TRTCVideoFrameListener() {
-                            @Override
-                            public void onGLContextCreated() {
-                                Log.i(TAG, "tex onGLContextCreated: " + EGL14.eglGetCurrentContext());
-                                mFURenderer.onSurfaceCreated();
-                                mFURenderer.setUseTexAsync(true);
-                            }
+            mTRTCCloud.setLocalVideoProcessListener(TRTCCloudDef.TRTC_VIDEO_PIXEL_FORMAT_Texture_2D,
+                    TRTCCloudDef.TRTC_VIDEO_BUFFER_TYPE_TEXTURE, new TRTCCloudListener.TRTCVideoFrameListener() {
+                        @Override
+                        public void onGLContextCreated() {
+                            Log.i(TAG, "tex onGLContextCreated: " + EGL14.eglGetCurrentContext());
+                            mFURenderer.prepareRenderer(null);
+                        }
 
-                            @Override
-                            public int onProcessVideoFrame(TRTCCloudDef.TRTCVideoFrame src, TRTCCloudDef.TRTCVideoFrame dest) {
-//                            Log.v(TAG, String.format("process video frame, w %d, h %d, tex %d, rotation %d, pixel format %d",
-//                                    src.width, src.height, src.texture.textureId, src.rotation, src.pixelFormat));
-                                dest.texture.textureId = mFURenderer.onDrawFrameSingleInput(src.texture.textureId, src.width, src.height);
-                                return 0;
+                        @Override
+                        public int onProcessVideoFrame(TRTCCloudDef.TRTCVideoFrame src, TRTCCloudDef.TRTCVideoFrame dest) {
+                            Log.v(TAG, String.format("process video frame, w %d, h %d, tex %d, rotation %d, pixel format %d",
+                                    src.width, src.height, src.texture.textureId, src.rotation, src.pixelFormat));
+                            mFURenderer.setCameraFacing(mIsUseFrontCamera?CameraFacingEnum.CAMERA_FRONT:CameraFacingEnum.CAMERA_BACK);
+                            long start =  System.nanoTime();
+                            dest.texture.textureId = mFURenderer.onDrawFrameSingleInput(src.texture.textureId, src.width, src.height);
+                            if (mCSVUtils != null) {
+                                long renderTime = System.nanoTime() - start;
+                                mCSVUtils.writeCsv(null, renderTime);
                             }
+                            return 0;
+                        }
 
-                            @Override
-                            public void onGLContextDestory() {
-                                Log.i(TAG, "tex onGLContextDestory: " + EGL14.eglGetCurrentContext());
-                                mFURenderer.onSurfaceDestroyed();
-                            }
-                        });
-            } else {
-                mTRTCCloud.setLocalVideoProcessListener(TRTCCloudDef.TRTC_VIDEO_PIXEL_FORMAT_NV21,
-                        TRTCCloudDef.TRTC_VIDEO_BUFFER_TYPE_BYTE_ARRAY, new TRTCCloudListener.TRTCVideoFrameListener() {
-
-                            @Override
-                            public void onGLContextCreated() {
-                                Log.i(TAG, "nv21 onGLContextCreated: " + EGL14.eglGetCurrentContext());
-                                mFURenderer.onSurfaceCreated();
-                            }
-
-                            @Override
-                            public int onProcessVideoFrame(TRTCCloudDef.TRTCVideoFrame src, TRTCCloudDef.TRTCVideoFrame dest) {
-//                                Log.v(TAG, String.format("process video frame, w %d, h %d, src length %d, rotation %d, buffer type %d, dest length %d",
-//                                        src.width, src.height, src.data.length, src.rotation, src.bufferType, dest.data.length));
-                                mFURenderer.onDrawFrameSingleInput(src.data, src.width, src.height,
-                                        FURenderer.INPUT_FORMAT_NV21_BUFFER, dest.data, src.width, src.height);
-                                return 0;
-                            }
-
-                            @Override
-                            public void onGLContextDestory() {
-                                Log.i(TAG, "nv21 onGLContextDestory: " + EGL14.eglGetCurrentContext());
-                                mFURenderer.onSurfaceDestroyed();
-                            }
-                        });
-            }
+                        @Override
+                        public void onGLContextDestory() {
+                            mFURenderer.release();
+                            Log.i(TAG, "tex onGLContextDestory: " + EGL14.eglGetCurrentContext());
+                        }
+                    });
             mSensorManager = (SensorManager) mContext.getSystemService(Context.SENSOR_SERVICE);
             Sensor sensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
             mSensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL);
         }
         mTRTCCloud.startLocalPreview(isFrontCamera, txCloudVideoView);
+    }
+
+    @Override
+    public void setLocalVideoRenderListener(TRTCCloudListener.TRTCVideoFrameListener listener) {
+        if (mTRTCCloud != null) {
+            mTRTCCloud.setLocalVideoProcessListener(TRTCCloudDef.TRTC_VIDEO_PIXEL_FORMAT_Texture_2D, TRTCCloudDef.TRTC_VIDEO_BUFFER_TYPE_TEXTURE, listener);
+            mTRTCCloud.setLocalVideoProcessListener(TRTCCloudDef.TRTC_VIDEO_PIXEL_FORMAT_NV21, TRTCCloudDef.TRTC_VIDEO_BUFFER_TYPE_BYTE_ARRAY, listener);
+        }
     }
 
     @Override
@@ -864,19 +849,21 @@ public class TRTCCallingImpl extends TRTCCalling implements SensorEventListener 
             return;
         }
         mIsUseFrontCamera = isFrontCamera;
-        if (mIsFuEffect) {
-            int cameraId = isFrontCamera ? FURenderer.CAMERA_FACING_FRONT : FURenderer.CAMERA_FACING_BACK;
-            mFURenderer.onCameraChanged(cameraId, CameraUtils.getCameraOrientation(cameraId));
-            if (mFURenderer.getMakeupModule() != null) {
-                mFURenderer.getMakeupModule().setIsMakeupFlipPoints(isFrontCamera ? 0 : 1);
-            }
-        }
         mTRTCCloud.switchCamera();
+//        setVideoEncoderMirror(mIsUseFrontCamera);
+        if (mIsFuEffect) {
+            mFURenderer.setCameraFacing(mIsUseFrontCamera ? CameraFacingEnum.CAMERA_FRONT : CameraFacingEnum.CAMERA_BACK);
+        }
     }
 
     @Override
     public void setMicMute(boolean isMute) {
         mTRTCCloud.muteLocalAudio(isMute);
+    }
+
+    @Override
+    public void setVideoEncoderMirror(boolean mirror) {
+        mTRTCCloud.setVideoEncoderMirror(mirror);
     }
 
     @Override
@@ -1169,16 +1156,15 @@ public class TRTCCallingImpl extends TRTCCalling implements SensorEventListener 
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+        if (mIsFuEffect && event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
             float x = event.values[0];
             float y = event.values[1];
             float z = event.values[2];
             if (Math.abs(x) > 3 || Math.abs(y) > 3) {
-                if (Math.abs(x) > Math.abs(y)) {
-                    mFURenderer.onDeviceOrientationChanged(x > 0 ? 0 : 180);
-                } else {
-                    mFURenderer.onDeviceOrientationChanged(y > 0 ? 90 : 270);
-                }
+                if (Math.abs(x) > Math.abs(y))
+                    mFURenderer.setDeviceOrientation(x > 0 ? 0 : 180);
+                else
+                    mFURenderer.setDeviceOrientation(y > 0 ? 90 : 270);
             }
         }
     }
@@ -1186,5 +1172,30 @@ public class TRTCCallingImpl extends TRTCCalling implements SensorEventListener 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
+    }
+
+
+    private CSVUtils mCSVUtils;
+    //性能测试部分
+    private void initCsvUtil(Context context) {
+        mCSVUtils = new CSVUtils(context);
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault());
+        String dateStrDir = format.format(new Date(System.currentTimeMillis()));
+        dateStrDir = dateStrDir.replaceAll("-", "").replaceAll("_", "");
+        SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmssSSS", Locale.getDefault());
+        String dateStrFile = df.format(new Date());
+        String filePath = Constant.filePath + dateStrDir + File.separator + "excel-" + dateStrFile + ".csv";
+        Log.d(TAG, "initLog: CSV file path:" + filePath);
+        StringBuilder headerInfo = new StringBuilder();
+        headerInfo.append("version：").append(FURenderer.getInstance().getVersion()).append(CSVUtils.COMMA)
+                .append("机型：").append(android.os.Build.MANUFACTURER).append(android.os.Build.MODEL).append(CSVUtils.COMMA)
+                .append("处理方式：双输入纹理输出").append(CSVUtils.COMMA)
+                .append("编码方式：硬件编码").append(CSVUtils.COMMA);
+//                .append("编码分辨率：").append(ENCODE_FRAME_WIDTH).append("x").append(ENCODE_FRAME_HEIGHT).append(CSVUtils.COMMA)
+//                .append("编码帧率：").append(ENCODE_FRAME_FPS).append(CSVUtils.COMMA)
+//                .append("编码码率：").append(ENCODE_FRAME_BITRATE).append(CSVUtils.COMMA)
+//                .append("预览分辨率：").append(CAPTURE_WIDTH).append("x").append(CAPTURE_HEIGHT).append(CSVUtils.COMMA)
+//                .append("预览帧率：").append(CAPTURE_FRAME_RATE).append(CSVUtils.COMMA);
+        mCSVUtils.initHeader(filePath, headerInfo);
     }
 }

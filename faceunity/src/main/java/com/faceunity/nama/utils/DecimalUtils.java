@@ -5,11 +5,11 @@ package com.faceunity.nama.utils;
  *
  * @author Richie on 2019.07.05
  */
-public final class DecimalUtils {
+public class DecimalUtils {
     /**
-     * 两个浮点数的差值小于 0.01 认为相等，浮点数不要用 == 判断相等
+     * 两个浮点数的差值小于 0.001 认为相等
      */
-    private static final float THRESHOLD = 0.01F;
+    private static final float THRESHOLD = 0.001F;
 
     private DecimalUtils() {
     }

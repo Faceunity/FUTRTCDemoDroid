@@ -209,6 +209,11 @@ public class TXTRTCLiveRoom extends TRTCCloudListener implements ITRTCTXLiveRoom
     }
 
     @Override
+    public void setVideoEncoderMirror(boolean isMirror) {
+        mTRTCCloud.setVideoEncoderMirror(isMirror);
+    }
+
+    @Override
     public void muteLocalAudio(boolean mute) {
         TRTCLogger.i(TAG, "mute local audio, mute:" + mute);
         mTRTCCloud.muteLocalAudio(mute);

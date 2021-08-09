@@ -17,6 +17,10 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.blankj.utilcode.util.ToastUtils;
+import com.faceunity.core.enumeration.FUAIProcessorEnum;
+import com.faceunity.nama.FURenderer;
+import com.faceunity.nama.data.FaceUnityDataFactory;
+import com.faceunity.nama.listener.FURendererListener;
 import com.faceunity.nama.ui.FaceUnityView;
 import com.faceunity.nama.utils.PreferenceUtil;
 import com.squareup.picasso.Picasso;
@@ -83,6 +87,9 @@ public class TRTCVideoCallActivity extends AppCompatActivity {
     private boolean isHandsFree = true;
     private boolean isMuteMic = false;
     private boolean isFrontCamera = true;
+
+    private FURenderer mFURenderer;
+
     /**
      * 拨号的回调
      */
@@ -251,6 +258,8 @@ public class TRTCVideoCallActivity extends AppCompatActivity {
             }
         }
     };
+    private FaceUnityDataFactory mFaceUnityDataFactory;
+    private boolean mIsFuEffect;
 
     /**
      * 主动拨打给某个用户
@@ -298,6 +307,13 @@ public class TRTCVideoCallActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        if (mIsFuEffect && mFURenderer != null)
+            mFaceUnityDataFactory.bindCurrentRenderer();
+    }
+
+    @Override
     public void onBackPressed() {
         mTRTCCalling.hangup();
         stopCameraAndFinish();
@@ -310,11 +326,13 @@ public class TRTCVideoCallActivity extends AppCompatActivity {
         finish();
     }
 
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
         stopTimeCount();
         mTimeHandlerThread.quit();
+        mTRTCCalling.setLocalVideoRenderListener(null);
     }
 
     private void initListener() {
@@ -350,14 +368,19 @@ public class TRTCVideoCallActivity extends AppCompatActivity {
     private void initData() {
         // 初始化成员变量
         mTRTCCalling = TRTCCallingImpl.sharedInstance(this);
+//        mTRTCCalling.setVideoEncoderMirror(true);
         mTRTCCalling.addDelegate(mTRTCCallingDelegate);
-        FaceUnityView faceUnityView = findViewById(R.id.fu_view);
-        boolean isFuEffect = TextUtils.equals(PreferenceUtil.VALUE_ON, PreferenceUtil.getString(this, PreferenceUtil.KEY_FACEUNITY_IS_ON));
-        if (isFuEffect) {
-            faceUnityView.setModuleManager(mTRTCCalling.createCustomRenderer(this, isFrontCamera));
-        } else {
-            faceUnityView.setVisibility(View.GONE);
+//        FaceUnityView faceUnityView = findViewById(R.id.fu_view);
+        mIsFuEffect = TextUtils.equals(PreferenceUtil.VALUE_ON, PreferenceUtil.getString(this, PreferenceUtil.KEY_FACEUNITY_IS_ON));
+        if (mIsFuEffect) {
+            mFURenderer = FURenderer.getInstance();
+            FaceUnityView faceUnityView = findViewById(R.id.fu_view);
+            faceUnityView.setVisibility(View.VISIBLE);
+            mFaceUnityDataFactory = new FaceUnityDataFactory(0);
+            faceUnityView.bindDataFactory(mFaceUnityDataFactory);
+            mTRTCCalling.createCustomRenderer(this, true, mIsFuEffect);
         }
+
         mTimeHandlerThread = new HandlerThread("time-count-thread");
         mTimeHandlerThread.start();
         mTimeHandler = new Handler(mTimeHandlerThread.getLooper());

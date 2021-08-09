@@ -102,6 +102,7 @@
         android:id="@+id/fu_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:visibility="gone"
         app:layout_constraintBottom_toTopOf="@id/tv_time" />
 
     <TextView

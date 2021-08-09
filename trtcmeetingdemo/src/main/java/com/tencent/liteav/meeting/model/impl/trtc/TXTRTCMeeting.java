@@ -178,6 +178,11 @@ public class TXTRTCMeeting extends TRTCCloudListener {
         }
     }
 
+    public void setVideoEncoderMirror(boolean isMirror) {
+        TRTCLogger.i(TAG, "mirror:" + isMirror);
+        mTRTCCloud.setVideoEncoderMirror(isMirror);
+    }
+
     public void muteLocalAudio(boolean mute) {
         TRTCLogger.i(TAG, "mute local audio, mute:" + mute);
         mTRTCCloud.muteLocalAudio(mute);

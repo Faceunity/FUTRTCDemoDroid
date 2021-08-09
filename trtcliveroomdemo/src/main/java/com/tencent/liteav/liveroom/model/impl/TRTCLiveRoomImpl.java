@@ -12,8 +12,10 @@ import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.faceunity.core.enumeration.CameraFacingEnum;
 import com.faceunity.nama.FURenderer;
-import com.faceunity.nama.utils.CameraUtils;
+import com.faceunity.nama.profile.CSVUtils;
+import com.faceunity.nama.profile.Constant;
 import com.tencent.liteav.audio.TXAudioEffectManager;
 import com.tencent.liteav.beauty.TXBeautyManager;
 import com.tencent.liteav.liveroom.model.TRTCLiveRoom;
@@ -38,12 +40,16 @@ import com.tencent.trtc.TRTCCloud;
 import com.tencent.trtc.TRTCCloudDef;
 import com.tencent.trtc.TRTCCloudListener;
 
+import java.io.File;
 import java.lang.ref.WeakReference;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -92,28 +98,28 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
         }
     }
 
-    private static final String               TAG = "TRTCLiveRoom";
-    private static       TRTCLiveRoomImpl     sInstance;
-    private              TRTCLiveRoomDelegate mDelegate;
+    private static final String TAG = "TRTCLiveRoom";
+    private static TRTCLiveRoomImpl sInstance;
+    private TRTCLiveRoomDelegate mDelegate;
     // 所有调用都切到主线程使用，保证内部多线程安全问题
-    private              Handler              mMainHandler;
+    private Handler mMainHandler;
     // 外部可指定的回调线程
-    private              Handler              mDelegateHandler;
+    private Handler mDelegateHandler;
 
     // SDK AppId
-    private int                                mSDKAppId;
+    private int mSDKAppId;
     // 房间ID RoomService 与 TRTC 都是相同的 ID
-    private String                             mRoomId;
+    private String mRoomId;
     // 用户ID
-    private String                             mUserId;
+    private String mUserId;
     // 用户签名
-    private String                             mUserSign;
+    private String mUserSign;
     // 配置
     private TRTCLiveRoomDef.TRTCLiveRoomConfig mRoomConfig;
     // 房间现在的状态
-    private int                                mRoomLiveStatus = ROOM_STATUS_NONE;
+    private int mRoomLiveStatus = ROOM_STATUS_NONE;
     // 房间现在的信息
-    private TRTCLiveRoomDef.TRTCLiveRoomInfo   mLiveRoomInfo;
+    private TRTCLiveRoomDef.TRTCLiveRoomInfo mLiveRoomInfo;
 
     // 主播列表
     private Set<String> mAnchorList;
@@ -137,6 +143,8 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
     private TXCallbackHolder mRequestPKHolder;
 
     private TRTCCloud mTRTCCloud;
+
+    /*相芯科技相关*/
     private boolean mIsFuEffect;
     private SensorManager mSensorManager;
     private FURenderer mFURenderer;
@@ -181,6 +189,7 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
         //        mThrowVideoAvailableAnchorList = new HashSet<>();
         mJoinAnchorCallbackHolder = new TXCallbackHolder(this);
         mRequestPKHolder = new TXCallbackHolder(this);
+//        initCsvUtil(context);
     }
 
     private void destroy() {
@@ -399,7 +408,7 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
                 mAudienceList.clear();
 
                 mTargetRole = Role.TRTC_ANCHOR;
-                final String roomName  = (roomParam == null ? "" : roomParam.roomName);
+                final String roomName = (roomParam == null ? "" : roomParam.roomName);
                 final String roomCover = (roomParam == null ? "" : roomParam.coverUrl);
                 // 创建房间
                 TXRoomService.getInstance().createRoom(mRoomId, roomName, roomCover, new TXCallback() {
@@ -561,8 +570,8 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
                 //                mThrowVideoAvailableAnchorList.clear();
                 mAnchorList.clear();
                 mRoomId = String.valueOf(roomId);
-                boolean                            useCDNFirst = false;
-                TRTCLiveRoomDef.TRTCLiveRoomConfig config      = mRoomConfig;
+                boolean useCDNFirst = false;
+                TRTCLiveRoomDef.TRTCLiveRoomConfig config = mRoomConfig;
                 if (config != null) {
                     useCDNFirst = config.useCDNFirst;
                 }
@@ -734,7 +743,7 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
                                     continue;
                                 }
                                 TRTCLiveRoomDef.TRTCLiveRoomInfo liveRoomInfo = new TRTCLiveRoomDef.TRTCLiveRoomInfo();
-                                int                              translateRoomId;
+                                int translateRoomId;
                                 try {
                                     translateRoomId = Integer.valueOf(info.roomId);
                                 } catch (NumberFormatException e) {
@@ -764,6 +773,7 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
      * 1. TRTC进房后，有主播进/退房会通知流水线，流水线维护一个AnchorList
      * 2. 需要获取主播的详细信息，会拿这个AnchorList去IM查询信息
      * 3. 回调结果
+     *
      * @param callback 用户详细信息回调
      */
     @Override
@@ -808,6 +818,7 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
      * 1. TRTC进房后，有主播进/退房会通知流水线，流水线维护主播列表AnchorList
      * 2. 向IM查询群内所有的成员列表，然后过滤掉主播
      * 3. 回调结果
+     *
      * @param callback 用户详细信息回调
      */
     @Override
@@ -850,8 +861,9 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
 
     /**
      * 透传给 TRTC 打开摄像头
-     * @param isFront YES：前置摄像头；NO：后置摄像头。
-     * @param view 承载视频画面的控件
+     *
+     * @param isFront  YES：前置摄像头；NO：后置摄像头。
+     * @param view     承载视频画面的控件
      * @param callback 操作回调
      */
     @Override
@@ -859,61 +871,39 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
         Log.d(TAG, "startCameraPreview() called with: isFront = [" + isFront + "], view = [" + view + "], callback = [" + callback + "]");
         mIsUseFrontCamera = isFront;
         if (mIsFuEffect) {
-            boolean sendTexture = true;
-            if (sendTexture) {
-                mTRTCCloud.setLocalVideoProcessListener(TRTCCloudDef.TRTC_VIDEO_PIXEL_FORMAT_Texture_2D,
-                        TRTCCloudDef.TRTC_VIDEO_BUFFER_TYPE_TEXTURE, new TRTCCloudListener.TRTCVideoFrameListener() {
-                            @Override
-                            public void onGLContextCreated() {
-                                Log.i(TAG, "tex onGLContextCreated: " + EGL14.eglGetCurrentContext());
-                                mFURenderer.onSurfaceCreated();
-                                mFURenderer.setUseTexAsync(true);
-                            }
+            mTRTCCloud.setLocalVideoProcessListener(TRTCCloudDef.TRTC_VIDEO_PIXEL_FORMAT_Texture_2D,
+                    TRTCCloudDef.TRTC_VIDEO_BUFFER_TYPE_TEXTURE, new TRTCCloudListener.TRTCVideoFrameListener() {
+                        @Override
+                        public void onGLContextCreated() {
+                            Log.i(TAG, "tex onGLContextCreated: " + EGL14.eglGetCurrentContext());
+                            mFURenderer.prepareRenderer(null);
+                        }
 
-                            @Override
-                            public int onProcessVideoFrame(TRTCCloudDef.TRTCVideoFrame src, TRTCCloudDef.TRTCVideoFrame dest) {
-//                            Log.v(TAG, String.format("process video frame, w %d, h %d, tex %d, rotation %d, pixel format %d",
-//                                    src.width, src.height, src.texture.textureId, src.rotation, src.pixelFormat));
-                                dest.texture.textureId = mFURenderer.onDrawFrameSingleInput(src.texture.textureId, src.width, src.height);
-                                return 0;
+                        @Override
+                        public int onProcessVideoFrame(TRTCCloudDef.TRTCVideoFrame src, TRTCCloudDef.TRTCVideoFrame dest) {
+                            Log.d(TAG, String.format("process video frame, w %d, h %d, tex %d, rotation %d, pixel format %d",
+                                    src.width, src.height, src.texture.textureId, src.rotation, src.pixelFormat));
+                            mFURenderer.setCameraFacing(mIsUseFrontCamera?CameraFacingEnum.CAMERA_FRONT:CameraFacingEnum.CAMERA_BACK);
+                            long start =  System.nanoTime();
+                            dest.texture.textureId = mFURenderer.onDrawFrameSingleInput(src.texture.textureId, src.width, src.height);
+                            if (mCSVUtils != null) {
+                                long renderTime = System.nanoTime() - start;
+                                mCSVUtils.writeCsv(null, renderTime);
                             }
+                            return 0;
+                        }
 
-                            @Override
-                            public void onGLContextDestory() {
-                                Log.i(TAG, "tex onGLContextDestory: " + EGL14.eglGetCurrentContext());
-                                mFURenderer.onSurfaceDestroyed();
-                            }
-                        });
-            } else {
-                mTRTCCloud.setLocalVideoProcessListener(TRTCCloudDef.TRTC_VIDEO_PIXEL_FORMAT_NV21,
-                        TRTCCloudDef.TRTC_VIDEO_BUFFER_TYPE_BYTE_ARRAY, new TRTCCloudListener.TRTCVideoFrameListener() {
-
-                            @Override
-                            public void onGLContextCreated() {
-                                Log.i(TAG, "nv21 onGLContextCreated: " + EGL14.eglGetCurrentContext());
-                                mFURenderer.onSurfaceCreated();
-                            }
-
-                            @Override
-                            public int onProcessVideoFrame(TRTCCloudDef.TRTCVideoFrame src, TRTCCloudDef.TRTCVideoFrame dest) {
-//                                Log.v(TAG, String.format("process video frame, w %d, h %d, src length %d, rotation %d, buffer type %d, dest length %d",
-//                                        src.width, src.height, src.data.length, src.rotation, src.bufferType, dest.data.length));
-                                mFURenderer.onDrawFrameSingleInput(src.data, src.width, src.height,
-                                        FURenderer.INPUT_FORMAT_NV21_BUFFER, dest.data, src.width, src.height);
-                                return 0;
-                            }
-
-                            @Override
-                            public void onGLContextDestory() {
-                                Log.i(TAG, "nv21 onGLContextDestory: " + EGL14.eglGetCurrentContext());
-                                mFURenderer.onSurfaceDestroyed();
-                            }
-                        });
-            }
+                        @Override
+                        public void onGLContextDestory() {
+                            Log.i(TAG, "tex onGLContextDestory: " + EGL14.eglGetCurrentContext());
+                            mFURenderer.release();
+                        }
+                    });
             mSensorManager = (SensorManager) mContext.getSystemService(Context.SENSOR_SERVICE);
             Sensor sensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
             mSensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL);
         }
+
         runOnMainThread(new Runnable() {
             @Override
             public void run() {
@@ -934,6 +924,14 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
                 });
             }
         });
+    }
+
+
+    public void setLocalVideoRenderListener(TRTCCloudListener.TRTCVideoFrameListener listener) {
+        if (mTRTCCloud != null) {
+            mTRTCCloud.setLocalVideoProcessListener(TRTCCloudDef.TRTC_VIDEO_PIXEL_FORMAT_Texture_2D, TRTCCloudDef.TRTC_VIDEO_BUFFER_TYPE_TEXTURE, listener);
+            mTRTCCloud.setLocalVideoProcessListener(TRTCCloudDef.TRTC_VIDEO_PIXEL_FORMAT_NV21, TRTCCloudDef.TRTC_VIDEO_BUFFER_TYPE_BYTE_ARRAY, listener);
+        }
     }
 
     @Override
@@ -1063,6 +1061,7 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
      * 2. 更新 stream id 到房间服务：TXRoomService.updateStreamId
      * |- 回调结果忽略
      * 3. check(mOriginalRole == 观众) 退出连麦
+     *
      * @param callback
      */
     @Override
@@ -1331,6 +1330,7 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
      * |                                           |- 回调结果
      * |- false: 回调失败
      * 观众主动发起连麦，等待15s的超时，如果超时回调-2
+     *
      * @param reason
      * @param callback
      */
@@ -1377,6 +1377,7 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
      * |- false: 忽略
      * 主播接受到连麦请求，等待10s超时，如果不调用 responseJoinAnchor，会自动结束流程
      * 回复同意连麦后 会等待3s 超时，如果超时会自动结束流程
+     *
      * @param userId
      * @param agree
      * @param reason
@@ -1403,6 +1404,7 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
      * |                                                   |- 回调结果
      * |- false: 回调失败
      * 观众端会自动调用stopPublish退出连麦
+     *
      * @param userId
      * @param callback
      */
@@ -1450,6 +1452,7 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
      * |                                                       |- 回调结果
      * |- false: 回调结果失败
      * 主动发起PK，等待15s的超时，如果超时回调-2
+     *
      * @param roomId
      * @param userId
      * @param callback
@@ -1480,6 +1483,7 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
      * |- false: 忽略
      * 主播接受到PK请求，等待10s超时，如果不调用 responseRoomPK，会自动结束流程
      * 回复同意PK后 会等待3s 超时，如果超时会自动结束流程
+     *
      * @param userId
      * @param agree
      * @param reason
@@ -1556,15 +1560,12 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
         runOnMainThread(new Runnable() {
             @Override
             public void run() {
-                TRTCLogger.i(TAG, "switch camera.");
+//                TRTCLogger.i(TAG, "switch camera.");
                 mIsUseFrontCamera = !mIsUseFrontCamera;
-                TXTRTCLiveRoom.getInstance().switchCamera();
+                mTRTCCloud.switchCamera();
+//                setVideoEncoderMirror(mIsUseFrontCamera);
                 if (mIsFuEffect) {
-                    int cameraId = mIsUseFrontCamera ? FURenderer.CAMERA_FACING_FRONT : FURenderer.CAMERA_FACING_BACK;
-                    mFURenderer.onCameraChanged(cameraId, CameraUtils.getCameraOrientation(cameraId));
-                    if (mFURenderer.getMakeupModule() != null) {
-                        mFURenderer.getMakeupModule().setIsMakeupFlipPoints(mIsUseFrontCamera ? 0 : 1);
-                    }
+                    mFURenderer.setCameraFacing(mIsUseFrontCamera ? CameraFacingEnum.CAMERA_FRONT : CameraFacingEnum.CAMERA_BACK);
                 }
             }
         });
@@ -1582,6 +1583,22 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
             public void run() {
                 TRTCLogger.i(TAG, "set mirror.");
                 TXTRTCLiveRoom.getInstance().setMirror(isMirror);
+            }
+        });
+    }
+
+    /**
+     * 设置镜像
+     * <p>
+     * 直接调用 TRTC 设置：TXTRTCLiveRoom.setMirror
+     */
+    @Override
+    public void setVideoEncoderMirror(final boolean isMirror) {
+        runOnMainThread(new Runnable() {
+            @Override
+            public void run() {
+                TRTCLogger.i(TAG, "set mirror.");
+                TXTRTCLiveRoom.getInstance().setVideoEncoderMirror(isMirror);
             }
         });
     }
@@ -1744,25 +1761,15 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
     }
 
     @Override
-    public FURenderer createCustomRenderer(Activity activity, boolean isFrontCamera) {
-        super.createCustomRenderer(activity, isFrontCamera);
-        mIsFuEffect = true;
-        mIsUseFrontCamera = isFrontCamera;
-        int cameraFacing = mIsUseFrontCamera ? FURenderer.CAMERA_FACING_FRONT : FURenderer.CAMERA_FACING_BACK;
-        FURenderer fuRenderer = new FURenderer.Builder(activity)
-                .setInputTextureType(FURenderer.INPUT_TEXTURE_2D)
-                .setCameraFacing(cameraFacing)
-                .setInputImageOrientation(CameraUtils.getCameraOrientation(cameraFacing))
-                .setRunBenchmark(false)
-                .setOnDebugListener(new FURenderer.OnDebugListener() {
-                    @Override
-                    public void onFpsChanged(double fps, double callTime) {
-                        Log.d(TAG, "onFpsChanged " + String.format("fps: %.2f, callTime: %.2f", fps, callTime));
-                    }
-                })
-                .build();
-        mFURenderer = fuRenderer;
-        return fuRenderer;
+    public FURenderer createCustomRenderer(Activity activity, boolean isFrontCamera, boolean isFuEffect) {
+        super.createCustomRenderer(activity, isFrontCamera, isFuEffect);
+        mIsFuEffect = isFuEffect;
+        if (mIsFuEffect) {
+            mFURenderer = FURenderer.getInstance();
+//            mFURenderer.setMarkFPSEnable(true);
+        }
+
+        return mFURenderer;
     }
 
     private void enterTRTCRoomInner(final String roomId, final String userId, final String userSign, final int role, final TRTCLiveRoomCallback.ActionCallback callback) {
@@ -1817,7 +1824,7 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
                     if (mAnchorList.size() > 0) {
                         // 等待被混的主播列表（不包括自己本身）
                         List<TXTRTCMixUser> needToMixUserList = new ArrayList<>();
-                        boolean             isPKing           = TXRoomService.getInstance().isPKing();
+                        boolean isPKing = TXRoomService.getInstance().isPKing();
                         if (isPKing) {
                             // 如果是 PK 模式，那么肯定只应该有一个人，如果不止一个人，那么当前的状态应该是有问题的。
                             if (mAnchorList.size() == PK_ANCHOR_NUMS) {
@@ -2219,16 +2226,15 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+        if (mIsFuEffect && event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
             float x = event.values[0];
             float y = event.values[1];
             float z = event.values[2];
             if (Math.abs(x) > 3 || Math.abs(y) > 3) {
-                if (Math.abs(x) > Math.abs(y)) {
-                    mFURenderer.onDeviceOrientationChanged(x > 0 ? 0 : 180);
-                } else {
-                    mFURenderer.onDeviceOrientationChanged(y > 0 ? 90 : 270);
-                }
+                if (Math.abs(x) > Math.abs(y))
+                    mFURenderer.setDeviceOrientation(x > 0 ? 0 : 180);
+                else
+                    mFURenderer.setDeviceOrientation(y > 0 ? 90 : 270);
             }
         }
     }
@@ -2236,5 +2242,29 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
+    }
+
+    private CSVUtils mCSVUtils;
+    //性能测试部分
+    private void initCsvUtil(Context context) {
+        mCSVUtils = new CSVUtils(context);
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault());
+        String dateStrDir = format.format(new Date(System.currentTimeMillis()));
+        dateStrDir = dateStrDir.replaceAll("-", "").replaceAll("_", "");
+        SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmssSSS", Locale.getDefault());
+        String dateStrFile = df.format(new Date());
+        String filePath = Constant.filePath + dateStrDir + File.separator + "excel-" + dateStrFile + ".csv";
+        Log.d(TAG, "initLog: CSV file path:" + filePath);
+        StringBuilder headerInfo = new StringBuilder();
+        headerInfo.append("version：").append(FURenderer.getInstance().getVersion()).append(CSVUtils.COMMA)
+                .append("机型：").append(android.os.Build.MANUFACTURER).append(android.os.Build.MODEL).append(CSVUtils.COMMA)
+                .append("处理方式：双输入纹理输出").append(CSVUtils.COMMA)
+                .append("编码方式：硬件编码").append(CSVUtils.COMMA);
+//                .append("编码分辨率：").append(ENCODE_FRAME_WIDTH).append("x").append(ENCODE_FRAME_HEIGHT).append(CSVUtils.COMMA)
+//                .append("编码帧率：").append(ENCODE_FRAME_FPS).append(CSVUtils.COMMA)
+//                .append("编码码率：").append(ENCODE_FRAME_BITRATE).append(CSVUtils.COMMA)
+//                .append("预览分辨率：").append(CAPTURE_WIDTH).append("x").append(CAPTURE_HEIGHT).append(CSVUtils.COMMA)
+//                .append("预览帧率：").append(CAPTURE_FRAME_RATE).append(CSVUtils.COMMA);
+        mCSVUtils.initHeader(filePath, headerInfo);
     }
 }

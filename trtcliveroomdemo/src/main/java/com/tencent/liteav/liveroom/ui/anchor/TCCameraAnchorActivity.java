@@ -4,6 +4,7 @@ import android.animation.ObjectAnimator;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
+import android.opengl.EGL14;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.constraint.ConstraintSet;
@@ -21,6 +22,10 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.blankj.utilcode.util.ToastUtils;
+import com.faceunity.core.enumeration.FUAIProcessorEnum;
+import com.faceunity.nama.FURenderer;
+import com.faceunity.nama.data.FaceUnityDataFactory;
+import com.faceunity.nama.listener.FURendererListener;
 import com.faceunity.nama.ui.FaceUnityView;
 import com.faceunity.nama.utils.PreferenceUtil;
 import com.tencent.liteav.audiosettingkit.AudioEffectPanel;
@@ -74,19 +79,26 @@ public class TCCameraAnchorActivity extends TCBaseAnchorActivity implements View
     private List<String> mAnchorUserIdList = new ArrayList<>();
     private int mCurrentStatus = TRTCLiveRoomDef.ROOM_STATUS_NONE;
 
+    /*相芯科技相关*/
+    private FaceUnityDataFactory mFaceUnityDataFactory;
+    private FURenderer mFURenderer;
+    /*是否开启美颜*/
+    private boolean mIsFuEffect;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         setTheme(R.style.TRTCLiveRoomBeautyTheme);
+        //是否开启美颜
         super.onCreate(savedInstanceState);
-//        mPanelBeautyControl.setBeautyManager(mLiveRoom.getBeautyManager());
-        FaceUnityView faceUnityView = findViewById(R.id.fu_view);
-        boolean isFuEffect = TextUtils.equals(PreferenceUtil.VALUE_ON, PreferenceUtil.getString(this, PreferenceUtil.KEY_FACEUNITY_IS_ON));
-        if (isFuEffect) {
-            faceUnityView.setModuleManager(mLiveRoom.createCustomRenderer(this, true));
-        } else {
-            faceUnityView.setVisibility(View.GONE);
-        }
         startPreview();
+    }
+
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (mIsFuEffect && mFURenderer != null)
+            mFaceUnityDataFactory.bindCurrentRenderer();
     }
 
     @Override
@@ -97,9 +109,11 @@ public class TCCameraAnchorActivity extends TCBaseAnchorActivity implements View
     @Override
     protected void initView() {
         super.initView();
+        mIsFuEffect = TextUtils.equals(PreferenceUtil.VALUE_ON, PreferenceUtil.getString(this, PreferenceUtil.KEY_FACEUNITY_IS_ON));
+        mLiveRoom.createCustomRenderer(this, true, mIsFuEffect);
+
         mTXCloudVideoView = (TXCloudVideoView) findViewById(R.id.video_view_anchor);
         mTXCloudVideoView.setLogMargin(10, 10, 45, 55);
-
         mPKContainer = (RelativeLayout) findViewById(R.id.pk_container);
         mImagePKLayer = (ImageView) findViewById(R.id.iv_pk_layer);
 
@@ -138,34 +152,6 @@ public class TCCameraAnchorActivity extends TCBaseAnchorActivity implements View
                 mGroupLiveAfter.setVisibility(View.VISIBLE);
             }
         });
-
-//        mPanelBeautyControl = (BeautyPanel) findViewById(R.id.beauty_panel);
-//        mPanelBeautyControl.setOnBeautyListener(new BeautyPanel.OnBeautyListener() {
-//            @Override
-//            public void onTabChange(TabInfo tabInfo, int position) {
-//
-//            }
-//
-//            @Override
-//            public boolean onClose() {
-//                if (mIsEnterRoom) {
-//                    mGroupLiveAfter.setVisibility(View.VISIBLE);
-//                } else {
-//                    mGroupLiveBefore.setVisibility(View.VISIBLE);
-//                }
-//                return false;
-//            }
-//
-//            @Override
-//            public boolean onClick(TabInfo tabInfo, int tabPosition, ItemInfo itemInfo, int itemPosition) {
-//                return false;
-//            }
-//
-//            @Override
-//            public boolean onLevelChanged(TabInfo tabInfo, int tabPosition, ItemInfo itemInfo, int itemPosition, int beautyLevel) {
-//                return false;
-//            }
-//        });
 
         // 监听踢出的回调
         List<TCVideoView> videoViews = new ArrayList<>();
@@ -214,7 +200,16 @@ public class TCCameraAnchorActivity extends TCBaseAnchorActivity implements View
         mGuideLineHorizontal = (Guideline) findViewById(R.id.gl_horizontal);
         mRbNormalQuality = (RadioButton) findViewById(R.id.rb_live_room_quality_normal);
         mRbMusicQuality = (RadioButton) findViewById(R.id.rb_live_room_quality_music);
+
+        if (mIsFuEffect) {
+            mFURenderer = FURenderer.getInstance();
+            FaceUnityView faceUnityView = findViewById(R.id.fu_view);
+            faceUnityView.setVisibility(View.VISIBLE);
+            mFaceUnityDataFactory = new FaceUnityDataFactory(0);
+            faceUnityView.bindDataFactory(mFaceUnityDataFactory);
+        }
     }
+
 
     /**
      * 加载主播头像
@@ -229,7 +224,11 @@ public class TCCameraAnchorActivity extends TCBaseAnchorActivity implements View
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mLiveRoom.showVideoDebugLog(false);
+        if (mLiveRoom != null) {
+            mLiveRoom.showVideoDebugLog(false);
+            mLiveRoom.setLocalVideoRenderListener(null);
+        }
+
         if (mMainHandler != null) {
             mMainHandler.removeCallbacksAndMessages(null);
         }
@@ -275,6 +274,7 @@ public class TCCameraAnchorActivity extends TCBaseAnchorActivity implements View
         }
         mLiveRoom.setAudioQuality(audioQuality);
         // 创建房间成功，开始推流
+//        mLiveRoom.setVideoEncoderMirror(true);
         mLiveRoom.startPublish(mSelfUserId + "_stream", new TRTCLiveRoomCallback.ActionCallback() {
             @Override
             public void onCallback(int code, String msg) {
