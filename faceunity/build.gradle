@@ -6,8 +6,8 @@ android {
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 810
-        versionName "8.1.0"
+        versionCode 744
+        versionName "8.2.0"
         // 7.3.0_phy_505b959b_bf80f59
     }
     buildTypes {
@@ -28,8 +28,8 @@ dependencies {
         resolutionStrategy.cacheDynamicVersionsFor 0,'seconds'
     }
     implementation "com.android.support:appcompat-v7:$rootProject.ext.supportSdkVersion"
-    api 'com.faceunity:core:8.1.0'
-    api 'com.faceunity:model:8.1.0'
+    api 'com.faceunity:core:8.2.0'
+    api 'com.faceunity:model:8.2.0'
 
     implementation "com.android.support:recyclerview-v7:$rootProject.ext.supportSdkVersion"
 }
