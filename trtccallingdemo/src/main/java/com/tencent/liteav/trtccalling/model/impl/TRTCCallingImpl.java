@@ -386,8 +386,6 @@ public class TRTCCallingImpl extends TRTCCalling implements SensorEventListener 
         mTRTCCloud = TRTCCloud.sharedInstance(context);
         mTRTCInternalListenerManager = new TRTCInternalListenerManager();
         mLastCallModel.version = CallModel.VALUE_PROTOCOL_VERSION;
-
-        initCsvUtil(context);
     }
 
     @Override
@@ -783,6 +781,7 @@ public class TRTCCallingImpl extends TRTCCalling implements SensorEventListener 
                         @Override
                         public void onGLContextCreated() {
                             Log.i(TAG, "tex onGLContextCreated: " + EGL14.eglGetCurrentContext());
+                            initCsvUtil(mContext);
                             mFURenderer.prepareRenderer(null);
                         }
 

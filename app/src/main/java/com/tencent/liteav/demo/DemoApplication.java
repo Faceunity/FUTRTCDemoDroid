@@ -3,21 +3,15 @@ package com.tencent.liteav.demo;
 import android.os.Build;
 import android.os.StrictMode;
 import android.support.multidex.MultiDexApplication;
-import android.util.Log;
 
-import com.faceunity.core.callback.OperateCallback;
-import com.faceunity.core.faceunity.FURenderManager;
-import com.faceunity.core.utils.FULogger;
-import com.faceunity.nama.authpack;
+import com.faceunity.nama.FUConfig;
+import com.faceunity.nama.utils.FuDeviceUtils;
 import com.tencent.bugly.crashreport.CrashReport;
 import com.tencent.rtmp.TXLiveBase;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-
-//import com.squareup.leakcanary.LeakCanary;
-//import com.squareup.leakcanary.RefWatcher;
 
 
 public class DemoApplication extends MultiDexApplication {
@@ -32,6 +26,7 @@ public class DemoApplication extends MultiDexApplication {
     @Override
     public void onCreate() {
         super.onCreate();
+        FUConfig.DEVICE_LEVEL = FuDeviceUtils.judgeDeviceLevel(this);
         instance = this;
 
 //        TXLiveBase.setConsoleEnabled(true);
@@ -48,13 +43,7 @@ public class DemoApplication extends MultiDexApplication {
             builder.detectFileUriExposure();
         }
         closeAndroidPDialog();
-//        registerFURender();
     }
-
-    //    public static RefWatcher getRefWatcher(Context context) {
-    //        DemoApplication application = (DemoApplication) context.getApplicationContext();
-    //        return application.mRefWatcher;
-    //    }
 
     public static DemoApplication getApplication() {
         return instance;
@@ -79,25 +68,6 @@ public class DemoApplication extends MultiDexApplication {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    /**
-     * 初始化相芯SDK
-     */
-    private void registerFURender() {
-        FURenderManager.setKitDebug(FULogger.LogLevel.DEBUG);
-        FURenderManager.setCoreDebug(FULogger.LogLevel.OFF);
-        FURenderManager.registerFURender(getApplication(), authpack.A(), new OperateCallback() {
-            @Override
-            public void onSuccess(int code, String msg) {
-                Log.d(TAG, "success:" + msg);
-            }
-
-            @Override
-            public void onFail(int errCode, String errMsg) {
-                Log.e(TAG, "errCode:" + errCode + "   errMsg:" + errMsg);
-            }
-        });
     }
 
 }

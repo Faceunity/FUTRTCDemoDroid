@@ -15,6 +15,8 @@ import com.faceunity.core.enumeration.CameraFacingEnum;
 import com.faceunity.core.enumeration.FUAIProcessorEnum;
 import com.faceunity.nama.FURenderer;
 import com.faceunity.nama.listener.FURendererListener;
+import com.faceunity.nama.profile.CSVUtils;
+import com.faceunity.nama.profile.Constant;
 import com.tencent.liteav.beauty.TXBeautyManager;
 import com.tencent.liteav.meeting.model.TRTCMeeting;
 import com.tencent.liteav.meeting.model.TRTCMeetingCallback;
@@ -34,9 +36,13 @@ import com.tencent.trtc.TRTCCloud;
 import com.tencent.trtc.TRTCCloudDef;
 import com.tencent.trtc.TRTCCloudListener;
 
+import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
@@ -548,6 +554,7 @@ public class TRTCMeetingImpl extends TRTCMeeting implements ITXTRTCMeetingDelega
                         @Override
                         public void onGLContextCreated() {
                             Log.i(TAG, "tex onGLContextCreated: " + EGL14.eglGetCurrentContext());
+                            initCsvUtil(mContext);
                             mFURenderer.prepareRenderer(new FURendererListener() {
                                 @Override
                                 public void onPrepare() {
@@ -578,7 +585,12 @@ public class TRTCMeetingImpl extends TRTCMeeting implements ITXTRTCMeetingDelega
                             Log.v(TAG, String.format("process video frame, w %d, h %d, tex %d, rotation %d, pixel format %d",
                                     src.width, src.height, src.texture.textureId, src.rotation, src.pixelFormat));
                             mFURenderer.setCameraFacing(mIsUseFrontCamera?CameraFacingEnum.CAMERA_FRONT:CameraFacingEnum.CAMERA_BACK);
+                            long start =  System.nanoTime();
                             dest.texture.textureId = mFURenderer.onDrawFrameSingleInput(src.texture.textureId, src.width, src.height);
+                            if (mCSVUtils != null) {
+                                long renderTime = System.nanoTime() - start;
+                                mCSVUtils.writeCsv(null, renderTime);
+                            }
                             return 0;
                         }
 
@@ -1216,5 +1228,29 @@ public class TRTCMeetingImpl extends TRTCMeeting implements ITXTRTCMeetingDelega
 
     public void setCameraStatusListener (CameraStatusListener cameraStatusListener){
         mCameraStatusListener = cameraStatusListener;
+    }
+
+    private CSVUtils mCSVUtils;
+    //性能测试部分
+    private void initCsvUtil(Context context) {
+        mCSVUtils = new CSVUtils(context);
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault());
+        String dateStrDir = format.format(new Date(System.currentTimeMillis()));
+        dateStrDir = dateStrDir.replaceAll("-", "").replaceAll("_", "");
+        SimpleDateFormat df = new SimpleDateFormat("yyyyMMddHHmmssSSS", Locale.getDefault());
+        String dateStrFile = df.format(new Date());
+        String filePath = Constant.filePath + dateStrDir + File.separator + "excel-" + dateStrFile + ".csv";
+        Log.d(TAG, "initLog: CSV file path:" + filePath);
+        StringBuilder headerInfo = new StringBuilder();
+        headerInfo.append("version：").append(FURenderer.getInstance().getVersion()).append(CSVUtils.COMMA)
+                .append("机型：").append(android.os.Build.MANUFACTURER).append(android.os.Build.MODEL).append(CSVUtils.COMMA)
+                .append("处理方式：双输入纹理输出").append(CSVUtils.COMMA)
+                .append("编码方式：硬件编码").append(CSVUtils.COMMA);
+//                .append("编码分辨率：").append(ENCODE_FRAME_WIDTH).append("x").append(ENCODE_FRAME_HEIGHT).append(CSVUtils.COMMA)
+//                .append("编码帧率：").append(ENCODE_FRAME_FPS).append(CSVUtils.COMMA)
+//                .append("编码码率：").append(ENCODE_FRAME_BITRATE).append(CSVUtils.COMMA)
+//                .append("预览分辨率：").append(CAPTURE_WIDTH).append("x").append(CAPTURE_HEIGHT).append(CSVUtils.COMMA)
+//                .append("预览帧率：").append(CAPTURE_FRAME_RATE).append(CSVUtils.COMMA);
+        mCSVUtils.initHeader(filePath, headerInfo);
     }
 }
