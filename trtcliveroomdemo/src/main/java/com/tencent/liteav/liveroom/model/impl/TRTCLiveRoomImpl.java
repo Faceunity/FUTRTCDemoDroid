@@ -189,7 +189,6 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
         //        mThrowVideoAvailableAnchorList = new HashSet<>();
         mJoinAnchorCallbackHolder = new TXCallbackHolder(this);
         mRequestPKHolder = new TXCallbackHolder(this);
-//        initCsvUtil(context);
     }
 
     private void destroy() {
@@ -876,6 +875,7 @@ public class TRTCLiveRoomImpl extends TRTCLiveRoom implements ITXTRTCLiveRoomDel
                         @Override
                         public void onGLContextCreated() {
                             Log.i(TAG, "tex onGLContextCreated: " + EGL14.eglGetCurrentContext());
+                            initCsvUtil(mContext);
                             mFURenderer.prepareRenderer(null);
                         }
 

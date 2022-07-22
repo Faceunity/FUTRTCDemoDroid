@@ -29,34 +29,21 @@ public class NeedFaceUnityActivity extends Activity {
         String isOnStr = PreferenceUtil.getString(this, PreferenceUtil.KEY_FACEUNITY_IS_ON);
         mIsFaceUnityOn = TextUtils.equals(isOnStr, PreferenceUtil.VALUE_ON);
         button.setText(mIsFaceUnityOn ? "On" : "Off");
-        button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mIsFaceUnityOn = !mIsFaceUnityOn;
-                button.setText(mIsFaceUnityOn ? "On" : "Off");
-            }
+        button.setOnClickListener(v -> {
+            mIsFaceUnityOn = !mIsFaceUnityOn;
+            button.setText(mIsFaceUnityOn ? "On" : "Off");
         });
         Button btnToMain = findViewById(R.id.btn_to_main);
-        btnToMain.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(NeedFaceUnityActivity.this, SplashActivity.class);
-                PreferenceUtil.persistString(NeedFaceUnityActivity.this, PreferenceUtil.KEY_FACEUNITY_IS_ON,
-                        mIsFaceUnityOn ? PreferenceUtil.VALUE_ON : PreferenceUtil.VALUE_OFF);
-                startActivity(intent);
-                finish();
+        btnToMain.setOnClickListener(v -> {
+            Intent intent = new Intent(NeedFaceUnityActivity.this, SplashActivity.class);
+            PreferenceUtil.persistString(NeedFaceUnityActivity.this, PreferenceUtil.KEY_FACEUNITY_IS_ON,
+                    mIsFaceUnityOn ? PreferenceUtil.VALUE_ON : PreferenceUtil.VALUE_OFF);
+            startActivity(intent);
+            finish();
 
-                if (mIsFaceUnityOn) {
-                    ThreadHelper.getInstance().execute(new Runnable() {
-                        @Override
-                        public void run() {
-                            FURenderer.getInstance().setup(getApplicationContext());
-                        }
-                    });
-                }
+            if (mIsFaceUnityOn) {
+                ThreadHelper.getInstance().execute(() -> FURenderer.getInstance().setup(getApplicationContext()));
             }
         });
-
-        FUConfig.DEVICE_LEVEL = FuDeviceUtils.judgeDeviceLevel(this);
     }
 }
