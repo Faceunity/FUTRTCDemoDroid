@@ -32,7 +32,7 @@
         android:layout_height="match_parent"
         android:visibility="gone"
         tools:background="@color/meetingTextColorSecond"
-        tools:visibility="visible"/>
+        tools:visibility="visible" />
 
     <TextView
         android:id="@+id/tv_screen_capture_tag"
@@ -94,8 +94,8 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toBottomOf="parent"
         android:background="@color/colorTranslucent"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/tool_bar_view" />
 
     <android.support.v7.widget.AppCompatImageButton
@@ -158,5 +158,17 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout="@layout/viewstub_remote_user_list" />
+
+    <TextView
+        android:id="@+id/tv_tracking"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:textSize="16sp"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
 </android.support.constraint.ConstraintLayout>

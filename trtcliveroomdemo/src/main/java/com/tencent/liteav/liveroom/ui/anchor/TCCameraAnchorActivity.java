@@ -32,6 +32,7 @@ import com.tencent.liteav.audiosettingkit.AudioEffectPanel;
 import com.tencent.liteav.liveroom.R;
 import com.tencent.liteav.liveroom.model.TRTCLiveRoomCallback;
 import com.tencent.liteav.liveroom.model.TRTCLiveRoomDef;
+import com.tencent.liteav.liveroom.model.impl.TRTCLiveRoomImpl;
 import com.tencent.liteav.liveroom.ui.common.adapter.TCUserAvatarListAdapter;
 import com.tencent.liteav.liveroom.ui.common.utils.TCUtils;
 import com.tencent.liteav.liveroom.ui.widget.video.TCVideoView;
@@ -84,6 +85,7 @@ public class TCCameraAnchorActivity extends TCBaseAnchorActivity implements View
     private FURenderer mFURenderer;
     /*是否开启美颜*/
     private boolean mIsFuEffect;
+    private TextView mtvTracking;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -208,8 +210,13 @@ public class TCCameraAnchorActivity extends TCBaseAnchorActivity implements View
             mFaceUnityDataFactory = new FaceUnityDataFactory(0);
             faceUnityView.bindDataFactory(mFaceUnityDataFactory);
         }
-    }
 
+        mtvTracking = (TextView) findViewById(R.id.tv_tracking);
+        ((TRTCLiveRoomImpl) mLiveRoom).setTrackStatusListener((type, status) -> runOnUiThread(() -> {
+            mtvTracking.setText(type == FUAIProcessorEnum.FACE_PROCESSOR ? R.string.toast_not_detect_face : R.string.toast_not_detect_body);
+            mtvTracking.setVisibility(status > 0 ? View.INVISIBLE : View.VISIBLE);
+        }));
+    }
 
     /**
      * 加载主播头像
