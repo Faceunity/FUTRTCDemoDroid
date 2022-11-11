@@ -31,6 +31,7 @@ import android.widget.TextView;
 
 import com.blankj.utilcode.util.PermissionUtils;
 import com.blankj.utilcode.util.ToastUtils;
+import com.faceunity.core.enumeration.FUAIProcessorEnum;
 import com.faceunity.nama.FURenderer;
 import com.faceunity.nama.data.FaceUnityDataFactory;
 import com.faceunity.nama.dialog.ToastHelper;
@@ -118,6 +119,7 @@ public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetin
     private FURenderer mFURenderer;
     private boolean mIsFuEffect;
     private ProgressDialog mProgressDialog;
+    private TextView mtvTracking;
 
     public static void enterRoom(Context context,
                                  int roomId,
@@ -271,6 +273,12 @@ public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetin
                     mProgressDialog.dismiss();
             });
         });
+
+        ((TRTCMeetingImpl) mTRTCMeeting).setTrackStatusListener((type, status) -> runOnUiThread(() -> {
+            mtvTracking.setText(type == FUAIProcessorEnum.FACE_PROCESSOR ? R.string.toast_not_detect_face : R.string.toast_not_detect_body);
+            mtvTracking.setVisibility(status > 0 ? View.INVISIBLE : View.VISIBLE);
+        }));
+
 //        mTRTCMeeting.setVideoEncoderMirror(true);
         mIsFuEffect = TextUtils.equals(PreferenceUtil.VALUE_ON, PreferenceUtil.getString(this, PreferenceUtil.KEY_FACEUNITY_IS_ON));
         mTRTCMeeting.createCustomRenderer(this, isFrontCamera, mIsFuEffect);
@@ -415,6 +423,7 @@ public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetin
         mScreenCaptureGroup = (Group) findViewById(R.id.group_screen_capture);
         mBottomToolBarGroup = (Group) findViewById(R.id.group_bottom_tool_bar);
         mStopScreenCaptureTv = (TextView) findViewById(R.id.tv_stop_screen_capture);
+        mtvTracking = (TextView) findViewById(R.id.tv_tracking);
 
         // 注册本地变更的通知
         IntentFilter intentFilter = new IntentFilter(FeatureConfig.AUDIO_EVALUATION_CHANGED);
@@ -1084,4 +1093,6 @@ public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetin
             }
         }
     };
+
+
 }

@@ -5,13 +5,10 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
-import android.view.View;
 import android.widget.Button;
 
 import com.faceunity.core.utils.ThreadHelper;
-import com.faceunity.nama.FUConfig;
 import com.faceunity.nama.FURenderer;
-import com.faceunity.nama.utils.FuDeviceUtils;
 import com.faceunity.nama.utils.PreferenceUtil;
 
 /**

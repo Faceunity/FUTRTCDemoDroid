@@ -782,7 +782,28 @@ public class TRTCCallingImpl extends TRTCCalling implements SensorEventListener 
                         public void onGLContextCreated() {
                             Log.i(TAG, "tex onGLContextCreated: " + EGL14.eglGetCurrentContext());
                             initCsvUtil(mContext);
-                            mFURenderer.prepareRenderer(null);
+                            mFURenderer.prepareRenderer(new FURendererListener() {
+                                @Override
+                                public void onPrepare() {
+
+                                }
+
+                                @Override
+                                public void onTrackStatusChanged(FUAIProcessorEnum type, int status) {
+                                    if (mTrackStatusListener != null) {
+                                        mTrackStatusListener.traceStatusChange(type,status);
+                                    }
+                                }
+
+                                @Override
+                                public void onFpsChanged(double fps, double callTime) {
+
+                                }
+
+                                @Override
+                                public void onRelease() {
+                                }
+                            });
                         }
 
                         @Override
@@ -1196,5 +1217,15 @@ public class TRTCCallingImpl extends TRTCCalling implements SensorEventListener 
 //                .append("预览分辨率：").append(CAPTURE_WIDTH).append("x").append(CAPTURE_HEIGHT).append(CSVUtils.COMMA)
 //                .append("预览帧率：").append(CAPTURE_FRAME_RATE).append(CSVUtils.COMMA);
         mCSVUtils.initHeader(filePath, headerInfo);
+    }
+
+    TrackStatusListener mTrackStatusListener;
+
+    public interface TrackStatusListener{
+        void traceStatusChange(FUAIProcessorEnum type, int status);
+    }
+
+    public void setTrackStatusListener (TrackStatusListener trackStatusListener){
+        mTrackStatusListener = trackStatusListener;
     }
 }

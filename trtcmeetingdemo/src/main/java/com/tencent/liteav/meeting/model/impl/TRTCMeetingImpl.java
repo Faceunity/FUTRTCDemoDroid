@@ -563,7 +563,9 @@ public class TRTCMeetingImpl extends TRTCMeeting implements ITXTRTCMeetingDelega
 
                                 @Override
                                 public void onTrackStatusChanged(FUAIProcessorEnum type, int status) {
-
+                                    if (mTrackStatusListener != null) {
+                                        mTrackStatusListener.traceStatusChange(type,status);
+                                    }
                                 }
 
                                 @Override
@@ -1228,6 +1230,16 @@ public class TRTCMeetingImpl extends TRTCMeeting implements ITXTRTCMeetingDelega
 
     public void setCameraStatusListener (CameraStatusListener cameraStatusListener){
         mCameraStatusListener = cameraStatusListener;
+    }
+
+    TrackStatusListener mTrackStatusListener;
+
+    public interface TrackStatusListener{
+        void traceStatusChange(FUAIProcessorEnum type, int status);
+    }
+
+    public void setTrackStatusListener (TrackStatusListener trackStatusListener){
+        mTrackStatusListener = trackStatusListener;
     }
 
     private CSVUtils mCSVUtils;

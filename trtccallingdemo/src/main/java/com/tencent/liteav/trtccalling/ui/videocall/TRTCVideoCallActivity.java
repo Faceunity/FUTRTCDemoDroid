@@ -89,6 +89,7 @@ public class TRTCVideoCallActivity extends AppCompatActivity {
     private boolean isFrontCamera = true;
 
     private FURenderer mFURenderer;
+    private TextView mtvTracking;
 
     /**
      * 拨号的回调
@@ -368,6 +369,10 @@ public class TRTCVideoCallActivity extends AppCompatActivity {
     private void initData() {
         // 初始化成员变量
         mTRTCCalling = TRTCCallingImpl.sharedInstance(this);
+        ((TRTCCallingImpl) mTRTCCalling).setTrackStatusListener((type, status) -> runOnUiThread(() -> {
+            mtvTracking.setText(type == FUAIProcessorEnum.FACE_PROCESSOR ? R.string.toast_not_detect_face : R.string.toast_not_detect_body);
+            mtvTracking.setVisibility(status > 0 ? View.INVISIBLE : View.VISIBLE);
+        }));
 //        mTRTCCalling.setVideoEncoderMirror(true);
         mTRTCCalling.addDelegate(mTRTCCallingDelegate);
 //        FaceUnityView faceUnityView = findViewById(R.id.fu_view);
@@ -437,6 +442,7 @@ public class TRTCVideoCallActivity extends AppCompatActivity {
         mSponsorAvatarImg = (ImageView) findViewById(R.id.iv_sponsor_avatar);
         mSponsorUserNameTv = (TextView) findViewById(R.id.tv_sponsor_user_name);
         mSponsorGroup = (Group) findViewById(R.id.group_sponsor);
+        mtvTracking = (TextView) findViewById(R.id.tv_tracking);
     }
 
 
