@@ -20,7 +20,7 @@ public class FaceBeautyBean {
         this.canUseFunction = true;
     }
 
-    public FaceBeautyBean(String key, int desRes, int closeRes, int openRes, boolean canUseFunction) {
+    public FaceBeautyBean(String key, int desRes, int closeRes, int openRes,boolean canUseFunction) {
         this.key = key;
         this.desRes = desRes;
         this.closeRes = closeRes;

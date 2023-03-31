@@ -287,7 +287,7 @@ public class MeetingMainActivity extends AppCompatActivity implements TRTCMeetin
             mFURenderer = FURenderer.getInstance();
             FaceUnityView faceUnityView = findViewById(R.id.fu_view);
             faceUnityView.setVisibility(View.VISIBLE);
-            mFaceUnityDataFactory = new FaceUnityDataFactory(0);
+            mFaceUnityDataFactory = new FaceUnityDataFactory(-1);
             faceUnityView.bindDataFactory(mFaceUnityDataFactory);
         }
 
