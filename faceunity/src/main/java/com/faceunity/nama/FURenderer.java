@@ -18,7 +18,9 @@ import com.faceunity.core.model.facebeauty.FaceBeautyBlurTypeEnum;
 import com.faceunity.core.utils.FULogger;
 import com.faceunity.nama.listener.FURendererListener;
 import com.faceunity.nama.utils.FuDeviceUtils;
+
 import org.jetbrains.annotations.NotNull;
+
 import java.io.File;
 
 
@@ -135,8 +137,10 @@ public class FURenderer extends IFURenderer {
         config.setCameraFacing(cameraFacing);
         config.setOutputMatrix(outputMatrix);
         mCallStartTime = System.nanoTime();
-        if (FUConfig.DEVICE_LEVEL > FuDeviceUtils.DEVICE_LEVEL_MID)//高性能设备
+        //高性能设备
+        if (FUConfig.DEVICE_LEVEL == FuDeviceUtils.DEVICE_LEVEL_HIGH) {
             cheekFaceNum();
+        }
         FURenderOutputData outputData = mFURenderKit.renderWithInput(inputData);
         mSumCallTime += System.nanoTime() - mCallStartTime;
         if (outputData != null && outputData.getTexture() != null && outputData.getTexture().getTexId() > 0) {
@@ -165,20 +169,12 @@ public class FURenderer extends IFURenderer {
         }
     }
 
-    @Override
-    public void setCameraFacing(CameraFacingEnum cameraFacing) {
-        super.setCameraFacing(cameraFacing);
-        if (cameraFacing == CameraFacingEnum.CAMERA_FRONT) {
-            setInputOrientation(180);
-            setInputBufferMatrix(FUTransformMatrixEnum.CCROT0_FLIPVERTICAL);
-            setInputTextureMatrix(FUTransformMatrixEnum.CCROT0_FLIPVERTICAL);
-            setOutputMatrix(FUTransformMatrixEnum.CCROT0);
-        } else {
-            setInputOrientation(180);
-            setInputBufferMatrix(FUTransformMatrixEnum.CCROT180);
-            setInputTextureMatrix(FUTransformMatrixEnum.CCROT180);
-            setOutputMatrix(FUTransformMatrixEnum.CCROT0_FLIPHORIZONTAL);
-        }
+    public void setInputInfo(CameraFacingEnum cameraFacing) {
+        setInputOrientation(180);
+        setCameraFacing(cameraFacing);
+        setInputBufferMatrix(FUTransformMatrixEnum.CCROT90_FLIPHORIZONTAL);
+        setInputTextureMatrix(FUTransformMatrixEnum.CCROT90_FLIPHORIZONTAL);
+        setOutputMatrix(FUTransformMatrixEnum.CCROT270);
 
     }
 
@@ -201,7 +197,7 @@ public class FURenderer extends IFURenderer {
         }
         FURenderInputData inputData = new FURenderInputData(width, height);
         //buffer为空，单纹理输入
-        //inputData.setImageBuffer(new FURenderInputData.FUImageBuffer(inputBufferType, img)); buffer
+        inputData.setImageBuffer(new FURenderInputData.FUImageBuffer(inputBufferType, img));
         inputData.setTexture(new FURenderInputData.FUTexture(inputTextureType, texId));
         FURenderInputData.FURenderConfig config = inputData.getRenderConfig();
         config.setExternalInputType(externalInputType);
@@ -332,7 +328,7 @@ public class FURenderer extends IFURenderer {
             mSumCallTime = 0;
             mCurrentFrameCount = 0;
 
-            Log.d("test","fps: " + fps + ",rendertime: " + renderTime);
+            Log.d("test", "fps: " + fps + ",rendertime: " + renderTime);
             if (mFURendererListener != null) {
                 mFURendererListener.onFpsChanged(fps, renderTime);
             }

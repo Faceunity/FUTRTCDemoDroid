@@ -2,8 +2,8 @@ package com.faceunity.nama.profile;
 
 import android.os.Build;
 import android.os.Debug;
-import android.support.annotation.RequiresApi;
 
+import androidx.annotation.RequiresApi;
 
 import java.lang.reflect.Field;
 
