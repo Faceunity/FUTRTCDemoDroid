@@ -1,11 +1,12 @@
 package com.faceunity.nama.ui;
 
 import android.content.Context;
-import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.LinearLayout;
+
+import androidx.annotation.Nullable;
 
 import com.faceunity.nama.R;
 import com.faceunity.nama.checkbox.CheckGroup;
@@ -107,7 +108,7 @@ public class FaceUnityView extends LinearLayout {
         mCheckGroupView = findViewById(R.id.group_function);
         mFaceBeautySkinControlView = findViewById(R.id.control_beauty_skin);
         mFaceBeautyShapeControlView = findViewById(R.id.control_beauty_shape);
-        mFilterControlView= findViewById(R.id.control_filter);
+        mFilterControlView = findViewById(R.id.control_filter);
         mMakeupControlView = findViewById(R.id.control_makeup);
         mPropControlView = findViewById(R.id.control_prop);
         mBodyBeautyControlView = findViewById(R.id.control_body);

@@ -57,8 +57,9 @@ public class FaceUnityDataFactory {
         hasFaceBeautyOrFilterLoaded = needBindFaceBeauty;
         //高端机开启小脸检测
         FUAIKit.getInstance().faceProcessorSetFaceLandmarkQuality(FUConfig.DEVICE_LEVEL);
-        if (FUConfig.DEVICE_LEVEL  > FuDeviceUtils.DEVICE_LEVEL_MID)
+        if (FUConfig.DEVICE_LEVEL == FuDeviceUtils.DEVICE_LEVEL_HIGH) {
             FUAIKit.getInstance().fuFaceProcessorSetDetectSmallFace(true);
+        }
         switch (currentFunctionIndex) {
             case 0://美肤
             case 1://美型
@@ -79,8 +80,10 @@ public class FaceUnityDataFactory {
                 mBodyBeautyDataFactory.bindCurrentRenderer();
                 hasBodyBeautyLoaded = true;
                 break;
+            default:
+                break;
         }
-        if (hasFaceBeautyOrFilterLoaded && (currentFunctionIndex != 0 || currentFunctionIndex != 1 ||currentFunctionIndex != 2)) {
+        if (hasFaceBeautyOrFilterLoaded && (currentFunctionIndex != 0 || currentFunctionIndex != 1 || currentFunctionIndex != 2)) {
             mFaceBeautyAndFilterDataFactory.bindCurrentRenderer();
         }
         if (hasPropLoaded && currentFunctionIndex != 3) {
@@ -140,6 +143,8 @@ public class FaceUnityDataFactory {
                 }
                 mFURenderKit.getFUAIController().setMaxFaces(1);
                 mFURenderer.setAIProcessTrackType(FUAIProcessorEnum.HUMAN_PROCESSOR);
+                break;
+            default:
                 break;
         }
     }

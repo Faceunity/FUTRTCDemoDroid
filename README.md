@@ -1,179 +1,162 @@
-# FuTRTCSeneDemo 快速接入文档
+# TRTC API-Example 
+[简体中文](README-zh_CN.md) | English
 
-FuTRTCSeneDemo 集成了 FaceUnity 美颜道具贴纸功能和腾讯实时音视频 **[TRTCDemo](https://github.com/tencentyun/TRTCSDK/tree/master/Android)**。TRTC 对接文档请看：[TRTC文档](./README_TRTC.md)。
+## Background
+This open-source demo shows how to use some APIs of the [TRTC SDK](https://www.tencentcloud.com/document/product/647/34615) to help you better understand the APIs and use them to implement some basic TRTC features. 
 
-本文是 FaceUnity SDK 快速对腾讯实时音视频的导读说明，SDK 版本为 **7.4.1.0**。关于 SDK 的详细说明，请参看 **[FULiveDemoDroid](https://github.com/Faceunity/FULiveDemoDroid/)**。
+## Contents
+This demo covers the following features (click to view the details of a feature):
 
-## 快速集成方法
+- Basic Features
+  - [Audio Call](./Basic/AudioCall)
+  - [Video Call](./Basic/VideoCall)
+  - [Interactive Live Video Streaming](./Basic/Live)
+  - [Interactive Live Audio Streaming](./Basic/VoiceChatRoom)
+  - [Screen Sharing Live Streaming](./Basic/ScreenShare)
+- Advanced Features
+  - [String-type Room IDs](./Advanced/StringRoomId)
+  - [Video Quality Setting](./Advanced/SetVideoQuality)
+  - [Audio Quality Setting](./Advanced/SetAudioQuality)
+  - [Rendering Control](./Advanced/SetRenderParams)
+  - [Network Speed Testing](./Advanced/SpeedTest)
+  - [CDN Publishing](./Advanced/PushCDN)
+  - [Custom Video Capturing & Rendering](./Advanced/CustomCamera)
+  - [Audio Effect Setting](./Advanced/SetAudioEffect)
+  - [Background Music Setting](./Advanced/SetBackgroundMusic)
+  - [Local Video Sharing](./Advanced/LocalVideoShare)
+  - [Local Video Recording](./Advanced/LocalRecord)
+  - [Multiple Room Entry](./Advanced/JoinMultipleRoom)
+  - [SEI Message Receiving/Sending](./Advanced/SEIMessage)
+  - [Room Switching](./Advanced/SwitchRoom)
+  - [Cross-Room Competition](./Advanced/RoomPk)
+  - [Third-Party Beauty Filters](./Advanced/ThirdBeauty)
+  
+>  Note: for clarity purposes, the naming of folders in the project may differ slightly from a standard Android Studio project in terms of letter case. 
 
-### 一、添加 SDK
 
-### 1. build.gradle配置
+## Environment Requirements
+- Android 4.1 (SDK API level 16) or above; Android 5.0 (SDK API level 21) or above is recommended
+- Android Studio 3.5 or above
+- Devices with Android 5.0 or above
+ 
 
-#### 1.1 allprojects配置
-```java
+## Demo Run Example
+
+#### Prerequisites
+You have [signed up for a Tencent Cloud account](https://intl.cloud.tencent.com/document/product/378/17985) and completed [identity verification](https://intl.cloud.tencent.com/document/product/378/3629).
+
+
+### Obtaining `SDKAPPID` and `SECRETKEY`
+1. Log in to the TRTC console and select **Application Management** > **[Create application](https://console.tencentcloud.com/trtc/app/create)**.
+2. Enter an application name such as `TestTRTC`, and click **Next**.
+
+![ #900px](https://qcloudimg.tencent-cloud.cn/raw/51c73a617e69a76ed26e6f74b0071ec9.png)
+3. Click **Next** to view your `SDKAppID` and `Secret key`.
+
+
+### Configuring demo project files
+1. Open the demo project `TRTC-API-Example` with Android Studio (3.5 or above).
+2. Find and open `TRTC-API-Example/Debug/src/main/java/com/tencent/trtc/debug/GenerateTestUserSig.java`.
+3. Set parameters in `GenerateTestUserSig.java` as follows:
+  - `SDKAPPID`: `PLACEHOLDER` by default. Set it to the actual `SDKAppID`.
+  - `SECRETKEY`: left empty by default. Set it to the actual key.
+ ![ #900px](https://qcloudimg.tencent-cloud.cn/raw/429ae90ac533b37c0036bebdc38d0488/TRTC-create-application-sdkAppId.png)
+
+4. Return to the TRTC console and click **Next**.
+5. Click **Return to Overview Page**.
+
+>!The method for generating `UserSig` described in this document involves configuring `SECRETKEY` in client code. In this method, `SECRETKEY` may be easily decompiled and reversed, and if your key is disclosed, attackers can steal your Tencent Cloud traffic. Therefore, **this method is suitable only for the local execution and debugging of the demo**.
+>The correct `UserSig` distribution method is to integrate the calculation code of `UserSig` into your server and provide an application-oriented API. When `UserSig` is needed, your application can make a request to the business server for dynamic `UserSig`. For more information, please see [How to Calculate UserSig](https://www.tencentcloud.com/document/product/647/35166).
+
+## Configuring CDN parameters (optional)
+To use CDN services, which are needed for co-anchoring, CDN playback, etc., you need to configure three **live streaming** parameters.
+
+For detailed instructions, see [CDN Relayed Live Streaming](https://www.tencentcloud.com/document/product/647/47858).
+
+### Integrating the SDK
+You can use JCenter for automatic loading or manually download the AAR file and import it to your project. The demo uses the first method by default.
+
+
+#### Method 1: automatic loading (AAR)
+The TRTC SDK has been released to the JCenter repository. You can use Gradle to download and update it automatically.
+Use Android Studio to open your project and modify the `app/build.gradle` file in three simple steps to integrate the SDK into your project, as shown below:
+
+1. Add the TRTC SDK dependencies to `dependencies`.
+ - Run the following command if you use the 3.x version of com.android.tools.build:gradle.
+```
+dependencies {
+    implementation 'com.tencent.liteav:LiteAVSDK_TRTC:latest.release'
+}
+```
+ - Run the following command if you use the 2.x version of com.android.tools.build:gradle.
+```
+dependencies {
+    compile 'com.tencent.liteav:LiteAVSDK_TRTC:latest.release'
+}
+```
+2. In `defaultConfig`, specify the CPU architecture to be used by the application.
+```
+defaultConfig {
+    ndk {
+        abiFilters "armeabi-v7a", "arm64-v8a"
+    }
+}
+```
+3. Click **Sync Now** to automatically download and integrate the SDK into your project.
+
+
+#### Method 2: manual download (AAR)
+If you have difficulty accessing JCenter, you can manually download the SDK and integrate it into your project.
+
+1. Download the latest version of the [TRTC SDK](https://liteav.sdk.qcloud.com/download/latest/en/TXLiteAVSDK_TRTC_Android_en_latest.zip).
+2. Copy the downloaded AAR file to the **app/libs** directory of your project.
+3. Add **flatDir** to `build.gradle` under the project’s root directory and specify a local path for the repository.
+```
+...
 allprojects {
     repositories {
-        ...
-        maven { url 'http://maven.faceunity.com/repository/maven-public/' }
-        ...
-  }
+        flatDir {
+            dirs 'libs'
+            dirs project(':app').file('libs')
+        }
+    ...
+    }
 }
+...
 ```
 
-#### 1.2 dependencies导入依赖
-```java
+4. Add code in `app/build.gradle` to import the AAR file.
+```
 dependencies {
-...
-implementation 'com.faceunity:core:7.4.1.0' // 实现代码
-implementation 'com.faceunity:model:7.4.1.0' // 道具以及AI bundle
-...
+    ...
+    compile(name: 'LiteAVSDK_TRTC_xxx', ext: 'aar') // `xxx` is the version number of the decompressed SDK
+    ...
 }
 ```
 
-##### 备注
-
-集成参考文档：FULiveDemoDroid 工程 doc目录
-
-### 2. 其他接入方式-底层库依赖
-
-```java
-dependencies {
-...
-implementation 'com.faceunity:nama:7.4.1.0' //底层库-标准版
-implementation 'com.faceunity:nama-lite:7.4.1.0' //底层库-lite版
-...
+5. In `defaultConfig` of `app/build.gradle`, specify the CPU architecture to be used by the application.
+```
+defaultConfig {
+    ndk {
+        abiFilters "armeabi-v7a", "arm64-v8a"
+    }
 }
 ```
+6. Click **Sync Now** to complete the integration. 
 
-  如需指定应用的 so 架构，请修改 app 模块 build.gradle：
 
-  ```groovy
-  android {
-      // ...
-      defaultConfig {
-          // ...
-          ndk {
-              abiFilters 'armeabi-v7a', 'arm64-v8a'
-          }
-      }
-  }
-  ```
+### Compiling and running the project
+Open the project with Android Studio, connect to an Android device, and compile and run the project.
 
-  如需剔除不必要的 assets 文件，请修改 app 模块 build.gradle：
+## Contact Us
+- If you have questions, see [FAQs](https://www.tencentcloud.com/document/product/647/36057).
 
-  ```groovy
-  android {
-      // ...
-      applicationVariants.all { variant ->
-          variant.mergeAssetsProvider.configure {
-              doLast {
-                  delete(fileTree(dir: outputDir, includes: ['model/ai_face_processor_lite.bundle',
-                                                             'model/ai_hand_processor.bundle',
-                                                             'graphics/controller.bundle',
-                                                             'graphics/fuzzytoonfilter.bundle',
-                                                             'graphics/fxaa.bundle',
-                                                             'graphics/tongue.bundle']))
-              }
-          }
-      }
-  }
-  ```
+- To learn about how the TRTC SDK can be used in different scenarios, see [Sample Code](https://www.tencentcloud.com/document/product/647/42963).
 
-###
+- For complete API documentation, see [SDK API Documentation](https://www.tencentcloud.com/document/product/647/35125).
 
-### 二、使用 SDK
-
-#### 1. 初始化
-
-在 `FURenderer` 类 的  `setup` 静态方法是对 FaceUnity SDK 一些全局数据初始化的封装，可以在 Application 中调用，也可以在工作线程调用，仅需初始化一次即可。
-
-当前demo在 NeedFaceUnityActivity 类中执行。
-
-#### 2.创建
-
-在 `FaceUnityDataFactory` 类 的  `bindCurrentRenderer` 方法是对 FaceUnity SDK 每次使用前数据初始化的封装。
-
-在 TRTCVideoCallActivity TCCameraAnchorActivity MeetingMainActivity类中在Activity生命周期进行调用
-
-```
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (mIsFuEffect && mFURenderer != null)
-            mFaceUnityDataFactory.bindCurrentRenderer();
-    }
-```
-
-#### 3. 图像处理
-
-在 `FURenderer` 类 的  `onDrawFrame` 方法是对 FaceUnity SDK 图像处理方法的封装，该方法有许多重载方法适用于不同的数据类型需求。
-
-在 TRTCCallingImpl TRTCMeetingImpl TRTCLiveRoomImpl 类中注册 setLocalVideoProcessListener监听，在 onProcessVideoFrame 方法中执行。（代码如上）
-
-onDrawFrameSingleInput 是单输入，输入图像buffer数组或者纹理Id，输出纹理Id
-onDrawFrameDualInput 双输入，输入图像buffer数组与纹理Id，输出纹理Id。性能上，双输入优于单输入
-
-在onDrawFrameSingleInput 与onDrawFrameDualInput 方法内，在执行底层方法之前，都会执行prepareDrawFrame()方法(执行各个特效模块的任务，将美颜参数传给底层)。
-
-#### 4. 销毁
-在 `FURenderer` 类 的  `release` 方法是对 FaceUnity SDK 数据销毁的封装。
-在 TRTCCallingImpl TRTCMeetingImpl TRTCLiveRoomImpl 类中注册 setLocalVideoProcessListener监听，在 onGLContextDestory方法中执行。（代码如上）
-
-#### 5. 切换相机
-切换相机之后要通过FURenderer.setCameraFacing设置相机的信息。
-在 TRTCCallingImpl TRTCMeetingImpl TRTCLiveRoomImpl
-
-```
-    @Override
-    public void switchCamera(boolean isFrontCamera) {
-        if (mIsUseFrontCamera == isFrontCamera) {
-            return;
-        }
-        mIsUseFrontCamera = isFrontCamera;
-        mTRTCCloud.switchCamera();
-//        setVideoEncoderMirror(mIsUseFrontCamera);
-        if (mIsFuEffect) {
-            mFURenderer.setCameraFacing(mIsUseFrontCamera ? CameraFacingEnum.CAMERA_FRONT : CameraFacingEnum.CAMERA_BACK);
-        }
-    }
-```
-
-#### 6. 旋转手机
-
-调用 `FURenderer` 类 的  `setDeviceOrientation` 方法，用于重新为 SDK 设置参数。
-
-在 TRTCCallingImpl TRTCMeetingImpl TRTCLiveRoomImpl   中
-
-```java
-    public void openCamera(boolean isFrontCamera, TXCloudVideoView txCloudVideoView) {
-        if (txCloudVideoView == null) {
-            return;
-        }
-        ...
-        mSensorManager = (SensorManager) mContext.getSystemService(Context.SENSOR_SERVICE);
-        Sensor sensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        mSensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL);
-        ...
-    }
-
-    public void closeCamera() {
-        Log.d(TAG, "closeCamera: ");
-        if (mSensorManager != null) {
-            mSensorManager.unregisterListener(this);
-        }
-    }
-```
-
-上面一系列方法的使用，具体在 demo 中的 `AVStreamingActivity`类，参考该代码示例接入即可。
-
-### 三、接口介绍
-
-- IFURenderer 是核心接口，提供了创建、销毁、渲染等接口。
-- FaceUnityDataFactory 控制四个功能模块，用于功能模块的切换，初始化
-- FaceBeautyDataFactory 是美颜业务工厂，用于调整美颜参数。
-- PropDataFactory 是道具业务工厂，用于加载贴纸效果。
-- MakeupDataFactory 是美妆业务工厂，用于加载美妆效果。
-- BodyBeautyDataFactory 是美体业务工厂，用于调整美体参数。
-
-关于 SDK 的更多详细说明，请参看 **[FULiveDemoDroid](https://github.com/Faceunity/FULiveDemoDroid/)**。如有对接问题，请联系技术支持。
+- Communication & Feedback   
+Welcome to join our Telegram Group to communicate with our professional engineers! We are more than happy to hear from you~
+Click to join: [https://t.me/+EPk6TMZEZMM5OGY1](https://t.me/+EPk6TMZEZMM5OGY1)   
+Or scan the QR code   
+  <img src="https://qcloudimg.tencent-cloud.cn/raw/79cbfd13877704ff6e17f30de09002dd.jpg" width="300px">    
