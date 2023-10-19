@@ -10,6 +10,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -23,8 +24,6 @@ import com.faceunity.nama.entity.FaceBeautyBean;
 import com.faceunity.nama.entity.ModelAttributeData;
 import com.faceunity.nama.infe.AbstractFaceBeautyDataFactory;
 import com.faceunity.nama.seekbar.DiscreteSeekBar;
-
-import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
