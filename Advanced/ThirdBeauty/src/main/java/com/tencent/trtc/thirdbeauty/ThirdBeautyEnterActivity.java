@@ -17,7 +17,7 @@ public class ThirdBeautyEnterActivity extends TRTCBaseActivity implements View.O
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_third_beauty_enter);
         getSupportActionBar().hide();
-        FUConfig.DEVICE_LEVEL = FuDeviceUtils.judgeDeviceLevelGPU();
+        FUConfig.DEVICE_LEVEL = FuDeviceUtils.judgeDeviceLevel(true);
         initViews();
     }
 

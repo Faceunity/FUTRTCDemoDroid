@@ -138,7 +138,7 @@ public class FURenderer extends IFURenderer {
         config.setOutputMatrix(outputMatrix);
         mCallStartTime = System.nanoTime();
         //高性能设备
-        if (FUConfig.DEVICE_LEVEL == FuDeviceUtils.DEVICE_LEVEL_HIGH) {
+        if (FUConfig.DEVICE_LEVEL > FuDeviceUtils.DEVICE_LEVEL_ONE) {
             cheekFaceNum();
         }
         FURenderOutputData outputData = mFURenderKit.renderWithInput(inputData);
