@@ -1,6 +1,5 @@
 package com.faceunity.nama.data;
 
-
 import androidx.annotation.NonNull;
 
 import com.faceunity.core.entity.FUBundleData;
@@ -125,5 +124,13 @@ public class MakeupDataFactory extends AbstractMakeupDataFactory {
      */
     public void bindCurrentRenderer() {
         mFURenderKit.setMakeup(currentMakeup);
+    }
+
+    public boolean isEnableMakeup() {
+        return MakeupSource.isEnableMakeup();
+    }
+
+    public String disableMessage() {
+        return MakeupSource.disableMessage();
     }
 }
