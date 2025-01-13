@@ -27,8 +27,8 @@ dependencies {
         resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
         resolutionStrategy.cacheDynamicVersionsFor 0, 'seconds'
     }
-    api 'com.faceunity:core:8.12.0'
-    api 'com.faceunity:model:8.12.0'
+    api 'com.faceunity:core:8.13.0'
+    api 'com.faceunity:model:8.13.0'
     implementation 'androidx.appcompat:appcompat:1.1.0'
     implementation 'com.google.android.material:material:1.3.0'
     implementation 'com.google.code.gson:gson:2.8.9'
