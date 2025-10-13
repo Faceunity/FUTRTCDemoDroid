@@ -16,6 +16,10 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.faceunity.nama.FUConfig;
+import com.faceunity.core.faceunity.FURenderKit;
+import com.faceunity.nama.repo.FaceBeautySource;
+import com.faceunity.nama.utils.FuDeviceUtils;
 import com.example.basic.TRTCBaseActivity;
 import com.faceunity.core.enumeration.CameraFacingEnum;
 import com.faceunity.core.enumeration.FUAIProcessorEnum;
@@ -228,6 +232,7 @@ public class ThirdBeautyFaceUnityActivity extends TRTCBaseActivity implements Vi
                         mFURenderer.prepareRenderer(new FURendererListener() {
                             @Override
                             public void onPrepare() {
+                                FURenderKit.getInstance().enableWarpAntiAlias(FaceBeautySource.BUNDLE_FACE_BEAUTIFICATION, FUConfig.DEVICE_LEVEL > FuDeviceUtils.DEVICE_LEVEL_ONE);
                             }
 
                             @Override
@@ -264,6 +269,7 @@ public class ThirdBeautyFaceUnityActivity extends TRTCBaseActivity implements Vi
                             long renderTime = System.nanoTime() - start;
                             mCSVUtils.writeCsv(null, renderTime);
                         }
+                        FURenderKit.getInstance().enableWarpAntiAlias(FaceBeautySource.BUNDLE_FACE_BEAUTIFICATION, FUConfig.DEVICE_LEVEL > FuDeviceUtils.DEVICE_LEVEL_ONE);
                         return 0;
                     }
 
