@@ -26,7 +26,6 @@ public class VideoCallingEnterActivity extends AppCompatActivity {
     private EditText mEditInputUserId;
     private EditText mEditInputRoomId;
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
